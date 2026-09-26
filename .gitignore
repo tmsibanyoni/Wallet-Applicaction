@@ -1,0 +1,20 @@
+# .NET
+bin/
+obj/
+*.user
+.vs/
+
+# Angular / Node
+client/wallet-ui/node_modules/
+client/wallet-ui/dist/
+client/wallet-ui/.angular/
+npm-debug.log*
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+*.swp
+
+# Local secrets/config overrides
+appsettings.*.local.json
