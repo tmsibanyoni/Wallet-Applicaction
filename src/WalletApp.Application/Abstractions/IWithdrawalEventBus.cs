@@ -11,4 +11,5 @@ namespace WalletApp.Application.Abstractions;
 public interface IWithdrawalEventBus
 {
     Task PublishAsync(WithdrawalCompleted withdrawalEvent, CancellationToken cancellationToken = default);
+
 }

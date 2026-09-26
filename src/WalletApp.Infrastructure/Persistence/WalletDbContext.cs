@@ -1,0 +1,44 @@
+using Microsoft.EntityFrameworkCore;
+using WalletApp.Domain;
+using WalletApp.Infrastructure.Events;
+
+namespace WalletApp.Infrastructure.Persistence;
+
+public sealed class WalletDbContext : DbContext
+{
+    public WalletDbContext(DbContextOptions<WalletDbContext> options) : base(options)
+    {
+    }
+
+    public DbSet<Wallet> Wallets => Set<Wallet>();
+
+    public DbSet<WithdrawalEventRecord> WithdrawalEvents => Set<WithdrawalEventRecord>();
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<Wallet>(builder =>
+        {
+            builder.ToTable("Wallets");
+            builder.HasKey(w => w.Id);
+            builder.Property(w => w.OwnerName).IsRequired().HasMaxLength(200);
+            builder.Property(w => w.Currency).IsRequired().HasMaxLength(3);
+            builder.Property(w => w.Balance).HasColumnType("decimal(18,2)");
+
+            // Optimistic concurrency: EF includes Version in the WHERE clause of every UPDATE,
+            // so a second writer working from a stale copy gets a DbUpdateConcurrencyException
+            // instead of silently overwriting the first writer's change.
+            builder.Property(w => w.Version).IsConcurrencyToken();
+        });
+
+        modelBuilder.Entity<WithdrawalEventRecord>(builder =>
+        {
+            builder.ToTable("WithdrawalEvents");
+            builder.HasKey(e => e.Id);
+            builder.HasIndex(e => e.WalletId);
+            builder.Property(e => e.EventType).IsRequired().HasMaxLength(100);
+            builder.Property(e => e.Currency).IsRequired().HasMaxLength(3);
+            builder.Property(e => e.Amount).HasColumnType("decimal(18,2)");
+            builder.Property(e => e.BalanceAfter).HasColumnType("decimal(18,2)");
+        });
+    }
+}
