@@ -22,7 +22,7 @@ public class WalletServiceTests
         _sut = new WalletService(_repository.Object, _eventBus.Object, options, NullLogger<WalletService>.Instance);
     }
 
-    private static Wallet NewWallet(decimal balance = 100m) => new(Guid.NewGuid(), "Owner", balance, "USD");
+    private static Wallet NewWallet(decimal balance = 100m, int id = 1) => new(id, "Owner", balance, "USD");
 
     [Fact]
     public async Task GetBalanceAsync_ExistingWallet_ReturnsBalance()
@@ -40,7 +40,7 @@ public class WalletServiceTests
     [Fact]
     public async Task GetBalanceAsync_MissingWallet_ThrowsWalletNotFoundException()
     {
-        var walletId = Guid.NewGuid();
+        const int walletId = 404;
         _repository.Setup(r => r.GetByIdAsync(walletId, It.IsAny<CancellationToken>())).ReturnsAsync((Wallet?)null);
 
         await Assert.ThrowsAsync<WalletNotFoundException>(() => _sut.GetBalanceAsync(walletId));
@@ -71,7 +71,7 @@ public class WalletServiceTests
     [Fact]
     public async Task WithdrawAsync_MissingWallet_ThrowsAndNeverSaves()
     {
-        var walletId = Guid.NewGuid();
+        const int walletId = 404;
         _repository.Setup(r => r.GetByIdAsync(walletId, It.IsAny<CancellationToken>())).ReturnsAsync((Wallet?)null);
 
         await Assert.ThrowsAsync<WalletNotFoundException>(() => _sut.WithdrawAsync(walletId, 10m));
@@ -101,7 +101,7 @@ public class WalletServiceTests
         var staleWallet = NewWallet(100m);
         var freshWallet = NewWallet(100m);
 
-        _repository.SetupSequence(r => r.GetByIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()))
+        _repository.SetupSequence(r => r.GetByIdAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()))
             .ReturnsAsync(staleWallet)
             .ReturnsAsync(freshWallet);
 
@@ -112,14 +112,14 @@ public class WalletServiceTests
         var result = await _sut.WithdrawAsync(staleWallet.Id, 30m);
 
         Assert.Equal(70m, result.BalanceAfter);
-        _repository.Verify(r => r.GetByIdAsync(It.IsAny<Guid>(), It.IsAny<CancellationToken>()), Times.Exactly(2));
+        _repository.Verify(r => r.GetByIdAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Exactly(2));
         _eventBus.Verify(b => b.PublishAsync(It.IsAny<WithdrawalCompleted>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
     public async Task WithdrawAsync_PersistentConcurrencyConflict_ThrowsAfterMaxRetries()
     {
-        var walletId = Guid.NewGuid();
+        const int walletId = 1;
 
         // A real repository reloads the tracked wallet to the currently persisted state after a
         // failed save (see EfWalletRepository.SaveWithdrawalAsync), so a fresh GetByIdAsync

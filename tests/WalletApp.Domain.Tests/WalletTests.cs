@@ -6,17 +6,15 @@ namespace WalletApp.Domain.Tests;
 
 public class WalletTests
 {
-    private static Wallet CreateWallet(decimal balance = 100m) =>
-        new(Guid.NewGuid(), "Test Owner", balance, "USD");
+    private static Wallet CreateWallet(decimal balance = 100m, int id = 1) =>
+        new(id, "Test Owner", balance, "USD");
 
     [Fact]
     public void Constructor_WithValidArguments_SetsInitialState()
     {
-        var id = Guid.NewGuid();
+        var wallet = new Wallet(42, "Ada Lovelace", 500m, "USD");
 
-        var wallet = new Wallet(id, "Ada Lovelace", 500m, "USD");
-
-        Assert.Equal(id, wallet.Id);
+        Assert.Equal(42, wallet.Id);
         Assert.Equal("Ada Lovelace", wallet.OwnerName);
         Assert.Equal(500m, wallet.Balance);
         Assert.Equal("USD", wallet.Currency);
@@ -26,13 +24,15 @@ public class WalletTests
     [Fact]
     public void Constructor_WithNegativeInitialBalance_Throws()
     {
-        Assert.Throws<ArgumentOutOfRangeException>(() => new Wallet(Guid.NewGuid(), "Owner", -1m, "USD"));
+        Assert.Throws<ArgumentOutOfRangeException>(() => new Wallet(1, "Owner", -1m, "USD"));
     }
 
-    [Fact]
-    public void Constructor_WithEmptyId_Throws()
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    public void Constructor_WithNonPositiveId_Throws(int id)
     {
-        Assert.Throws<ArgumentException>(() => new Wallet(Guid.Empty, "Owner", 100m, "USD"));
+        Assert.Throws<ArgumentOutOfRangeException>(() => new Wallet(id, "Owner", 100m, "USD"));
     }
 
     [Theory]
@@ -41,7 +41,7 @@ public class WalletTests
     [InlineData("   ")]
     public void Constructor_WithoutOwnerName_Throws(string? ownerName)
     {
-        Assert.Throws<ArgumentException>(() => new Wallet(Guid.NewGuid(), ownerName!, 100m, "USD"));
+        Assert.Throws<ArgumentException>(() => new Wallet(1, ownerName!, 100m, "USD"));
     }
 
     [Fact]

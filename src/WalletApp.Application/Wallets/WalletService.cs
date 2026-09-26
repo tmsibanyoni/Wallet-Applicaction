@@ -32,7 +32,7 @@ public sealed class WalletService : IWalletService
         _maxConcurrencyRetries = options.Value.MaxConcurrencyRetries;
     }
 
-    public async Task<BalanceResponse> GetBalanceAsync(Guid walletId, CancellationToken cancellationToken = default)
+    public async Task<BalanceResponse> GetBalanceAsync(int walletId, CancellationToken cancellationToken = default)
     {
         var wallet = await _walletRepository.GetByIdAsync(walletId, cancellationToken)
             ?? throw new WalletNotFoundException(walletId);
@@ -40,7 +40,7 @@ public sealed class WalletService : IWalletService
         return new BalanceResponse(wallet.Id, wallet.Balance, wallet.Currency);
     }
 
-    public async Task<WithdrawResult> WithdrawAsync(Guid walletId, decimal amount, CancellationToken cancellationToken = default)
+    public async Task<WithdrawResult> WithdrawAsync(int walletId, decimal amount, CancellationToken cancellationToken = default)
     {
         for (var attempt = 1; ; attempt++)
         {

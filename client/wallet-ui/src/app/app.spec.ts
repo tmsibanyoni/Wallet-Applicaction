@@ -24,7 +24,7 @@ describe('App', () => {
     const fixture = TestBed.createComponent(App);
     fixture.detectChanges();
 
-    httpMock.expectOne(balanceUrl).flush({ walletId: environment.defaultWalletId, balance: 1000, currency: 'USD' });
+    httpMock.expectOne(balanceUrl).flush({ walletId: Number(environment.defaultWalletId), balance: 1000, currency: 'USD' });
 
     expect(fixture.componentInstance.balance()).toBe(1000);
     expect(fixture.componentInstance.currency()).toBe('USD');
@@ -33,7 +33,7 @@ describe('App', () => {
   it('renders the wallet heading', () => {
     const fixture = TestBed.createComponent(App);
     fixture.detectChanges();
-    httpMock.expectOne(balanceUrl).flush({ walletId: environment.defaultWalletId, balance: 1000, currency: 'USD' });
+    httpMock.expectOne(balanceUrl).flush({ walletId: Number(environment.defaultWalletId), balance: 1000, currency: 'USD' });
 
     const compiled = fixture.nativeElement as HTMLElement;
     expect(compiled.querySelector('h1')?.textContent).toContain('Wallet');
@@ -54,7 +54,7 @@ describe('App', () => {
   it('updates the balance after a successful withdrawal', () => {
     const fixture = TestBed.createComponent(App);
     fixture.detectChanges();
-    httpMock.expectOne(balanceUrl).flush({ walletId: environment.defaultWalletId, balance: 1000, currency: 'USD' });
+    httpMock.expectOne(balanceUrl).flush({ walletId: Number(environment.defaultWalletId), balance: 1000, currency: 'USD' });
 
     fixture.componentInstance.withdrawAmount = 100;
     fixture.componentInstance.withdraw();
@@ -64,7 +64,7 @@ describe('App', () => {
 
     withdrawReq.flush({
       withdrawalId: 'w1',
-      walletId: environment.defaultWalletId,
+      walletId: Number(environment.defaultWalletId),
       amount: 100,
       balanceAfter: 900,
       currency: 'USD',

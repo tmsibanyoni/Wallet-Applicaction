@@ -18,10 +18,10 @@ public sealed class WalletsController : ControllerBase
 
     /// <summary>Gets the current balance of a wallet.</summary>
     /// <param name="walletId">The wallet's unique id.</param>
-    [HttpGet("{walletId:guid}/balance")]
+    [HttpGet("{walletId:int}/balance")]
     [ProducesResponseType(typeof(BalanceResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
-    public async Task<ActionResult<BalanceResponse>> GetBalance(Guid walletId, CancellationToken cancellationToken)
+    public async Task<ActionResult<BalanceResponse>> GetBalance(int walletId, CancellationToken cancellationToken)
     {
         var balance = await _walletService.GetBalanceAsync(walletId, cancellationToken);
         return Ok(balance);
@@ -33,14 +33,14 @@ public sealed class WalletsController : ControllerBase
     /// </summary>
     /// <param name="walletId">The wallet's unique id.</param>
     /// <param name="request">The amount to withdraw.</param>
-    [HttpPost("{walletId:guid}/withdrawals")]
+    [HttpPost("{walletId:int}/withdrawals")]
     [ProducesResponseType(typeof(WithdrawResult), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(ValidationProblemDetails), StatusCodes.Status400BadRequest)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status409Conflict)]
     [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status503ServiceUnavailable)]
     public async Task<ActionResult<WithdrawResult>> Withdraw(
-        Guid walletId, [FromBody] WithdrawRequest request, CancellationToken cancellationToken)
+        int walletId, [FromBody] WithdrawRequest request, CancellationToken cancellationToken)
     {
         var result = await _walletService.WithdrawAsync(walletId, request.Amount, cancellationToken);
         return Ok(result);

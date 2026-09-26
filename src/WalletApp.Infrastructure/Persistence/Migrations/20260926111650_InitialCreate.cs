@@ -15,7 +15,7 @@ namespace WalletApp.Infrastructure.Persistence.Migrations
                 name: "Wallets",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    Id = table.Column<int>(type: "int", nullable: false),
                     OwnerName = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
                     Balance = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
                     Currency = table.Column<string>(type: "nvarchar(3)", maxLength: 3, nullable: false),
@@ -31,7 +31,7 @@ namespace WalletApp.Infrastructure.Persistence.Migrations
                 columns: table => new
                 {
                     Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    WalletId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    WalletId = table.Column<int>(type: "int", nullable: false),
                     EventType = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
                     Amount = table.Column<decimal>(type: "decimal(18,2)", nullable: false),
                     BalanceAfter = table.Column<decimal>(type: "decimal(18,2)", nullable: false),

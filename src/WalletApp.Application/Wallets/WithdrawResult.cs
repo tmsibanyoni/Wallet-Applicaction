@@ -2,7 +2,7 @@ namespace WalletApp.Application.Wallets;
 
 public sealed record WithdrawResult(
     Guid WithdrawalId,
-    Guid WalletId,
+    int WalletId,
     decimal Amount,
     decimal BalanceAfter,
     string Currency,

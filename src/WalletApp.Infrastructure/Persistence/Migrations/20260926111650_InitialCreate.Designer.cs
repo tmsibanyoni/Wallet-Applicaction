@@ -12,7 +12,7 @@ using WalletApp.Infrastructure.Persistence;
 namespace WalletApp.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(WalletDbContext))]
-    [Migration("20260926083612_InitialCreate")]
+    [Migration("20260926111650_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -27,9 +27,8 @@ namespace WalletApp.Infrastructure.Persistence.Migrations
 
             modelBuilder.Entity("WalletApp.Domain.Wallet", b =>
                 {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<int>("Id")
+                        .HasColumnType("int");
 
                     b.Property<decimal>("Balance")
                         .HasColumnType("decimal(18,2)");
@@ -78,8 +77,8 @@ namespace WalletApp.Infrastructure.Persistence.Migrations
                     b.Property<DateTimeOffset>("OccurredAtUtc")
                         .HasColumnType("datetimeoffset");
 
-                    b.Property<Guid>("WalletId")
-                        .HasColumnType("uniqueidentifier");
+                    b.Property<int>("WalletId")
+                        .HasColumnType("int");
 
                     b.HasKey("Id");
 

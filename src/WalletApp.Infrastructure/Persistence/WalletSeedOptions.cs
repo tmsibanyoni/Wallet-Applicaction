@@ -10,7 +10,7 @@ public sealed class WalletSeedOptions
 {
     public const string SectionName = "WalletSeed";
 
-    public Guid WalletId { get; set; }
+    public int WalletId { get; set; }
     public string OwnerName { get; set; } = string.Empty;
     public decimal InitialBalance { get; set; }
     public string Currency { get; set; } = string.Empty;

@@ -8,7 +8,7 @@ namespace WalletApp.Domain.Abstractions;
 /// </summary>
 public interface IWalletRepository
 {
-    Task<Wallet?> GetByIdAsync(Guid walletId, CancellationToken cancellationToken = default);
+    Task<Wallet?> GetByIdAsync(int walletId, CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Persists a wallet that has just had a withdrawal applied to it, together with the

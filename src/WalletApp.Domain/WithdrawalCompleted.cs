@@ -7,7 +7,7 @@ namespace WalletApp.Domain;
 /// </summary>
 public sealed record WithdrawalCompleted(
     Guid EventId,
-    Guid WalletId,
+    int WalletId,
     decimal Amount,
     decimal BalanceAfter,
     string Currency,

@@ -87,7 +87,9 @@ Nothing environment-specific is baked into the code. Everything lives in
 
 ## API
 
-Two endpoints, both under `/api/wallets/{walletId}`:
+Two endpoints, both under `/api/wallets/{walletId}`, where `walletId` is a plain integer (the
+seed wallet's id is `1`) rather than a GUID — easier to read, type, and put in a URL for a small
+demo like this one. See the trade-off note below on why that's not free.
 
 - `GET /balance` → `{ walletId, balance, currency }`
 - `POST /withdrawals` with `{ amount }` → `{ withdrawalId, walletId, amount, balanceAfter, currency, occurredAtUtc }`
@@ -190,11 +192,19 @@ CRUD.
   retry chain.
 - **Swagger always on, not gated to `Development`.** Convenient for this exercise; I'd restrict
   or remove it in a real deployment.
+- **Short integer wallet ids over GUIDs.** Started with GUIDs (the usual choice when you don't
+  want ids to be guessable or enumerable), then switched to a plain `int` because typing/copying
+  `11111111-1111-1111-1111-111111111111` around while testing was needless friction for a
+  single-wallet demo. The real cost of that switch: combined with "no auth" below, a short
+  sequential id is trivially guessable/enumerable, which a GUID would have at least made
+  impractical. Worth reverting to GUIDs (or adding auth) before this is anything but a demo.
 
 ## Known limitations
 
 - No authentication/authorization at all — out of scope per the brief, but worth being explicit
-  that this is not close to production-shaped as-is.
+  that this is not close to production-shaped as-is. Combined with short integer wallet ids (see
+  trade-offs), wallet ids are also easy to guess/enumerate — a GUID plus auth would be the
+  realistic combination, not GUID alone or auth alone.
 - No idempotency key on the withdrawal endpoint. A client retrying a timed-out request (rather
   than a genuinely new withdrawal) can currently cause a double withdrawal.
 - No audit/history endpoint, even though the data exists — `WithdrawalEvents` is written but

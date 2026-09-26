@@ -1,3 +1,4 @@
+using System.Threading;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Data.SqlClient;
@@ -37,21 +38,26 @@ public sealed class WalletApiFactory : WebApplicationFactory<Program>, IAsyncLif
     }
 
     /// <summary>The id of the wallet the app seeds on startup, as configured in appsettings.json.</summary>
-    public Guid SeedWalletId => Services.GetRequiredService<IOptions<WalletSeedOptions>>().Value.WalletId;
+    public int SeedWalletId => Services.GetRequiredService<IOptions<WalletSeedOptions>>().Value.WalletId;
+
+    // Wallet.Id is assigned by the caller (no IDENTITY column - see WalletDbContext), so tests that
+    // seed their own wallets need their own unique ids. Starts well clear of the real seed id (1).
+    private static int _nextTestWalletId = 10_000;
 
     public async Task<Wallet> SeedWalletAsync(decimal balance, string currency = "USD")
     {
         using var scope = Services.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<WalletDbContext>();
 
-        var wallet = new Wallet(Guid.NewGuid(), $"Test Wallet {Guid.NewGuid():N}", balance, currency);
+        var id = Interlocked.Increment(ref _nextTestWalletId);
+        var wallet = new Wallet(id, $"Test Wallet {id}", balance, currency);
         dbContext.Wallets.Add(wallet);
         await dbContext.SaveChangesAsync();
 
         return wallet;
     }
 
-    public async Task<decimal> GetPersistedBalanceAsync(Guid walletId)
+    public async Task<decimal> GetPersistedBalanceAsync(int walletId)
     {
         using var scope = Services.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<WalletDbContext>();

@@ -16,7 +16,7 @@ public sealed class EfWalletRepository : IWalletRepository
         _dbContext = dbContext;
     }
 
-    public Task<Wallet?> GetByIdAsync(Guid walletId, CancellationToken cancellationToken = default)
+    public Task<Wallet?> GetByIdAsync(int walletId, CancellationToken cancellationToken = default)
         => _dbContext.Wallets.FirstOrDefaultAsync(w => w.Id == walletId, cancellationToken);
 
     public async Task SaveWithdrawalAsync(Wallet wallet, WithdrawalCompleted withdrawalEvent, CancellationToken cancellationToken = default)

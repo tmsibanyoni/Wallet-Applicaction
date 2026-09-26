@@ -7,9 +7,9 @@ namespace WalletApp.Domain.Exceptions;
 /// </summary>
 public sealed class ConcurrencyConflictException : Exception
 {
-    public Guid WalletId { get; }
+    public int WalletId { get; }
 
-    public ConcurrencyConflictException(Guid walletId, Exception innerException)
+    public ConcurrencyConflictException(int walletId, Exception innerException)
         : base($"Wallet '{walletId}' was modified concurrently by another request.", innerException)
     {
         WalletId = walletId;

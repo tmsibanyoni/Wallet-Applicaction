@@ -1,6 +1,15 @@
 @WalletApp.Api_HostAddress = http://localhost:5080
 
-GET {{WalletApp.Api_HostAddress}}/weatherforecast/
+GET {{WalletApp.Api_HostAddress}}/api/wallets/1/balance
 Accept: application/json
+
+###
+
+POST {{WalletApp.Api_HostAddress}}/api/wallets/1/withdrawals
+Content-Type: application/json
+
+{
+  "amount": 50
+}
 
 ###

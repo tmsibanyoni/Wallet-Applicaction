@@ -14,7 +14,7 @@ namespace WalletApp.Infrastructure.Events;
 public sealed class WithdrawalEventRecord
 {
     public Guid Id { get; private set; }
-    public Guid WalletId { get; private set; }
+    public int WalletId { get; private set; }
     public string EventType { get; private set; } = nameof(WithdrawalCompleted);
     public decimal Amount { get; private set; }
     public decimal BalanceAfter { get; private set; }

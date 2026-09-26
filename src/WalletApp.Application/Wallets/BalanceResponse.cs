@@ -1,3 +1,3 @@
 namespace WalletApp.Application.Wallets;
 
-public sealed record BalanceResponse(Guid WalletId, decimal Balance, string Currency);
+public sealed record BalanceResponse(int WalletId, decimal Balance, string Currency);

@@ -32,7 +32,7 @@ public class WalletsControllerTests : IClassFixture<WalletApiFactory>
     [Fact]
     public async Task GetBalance_UnknownWallet_Returns404()
     {
-        var response = await _client.GetAsync($"/api/wallets/{Guid.NewGuid()}/balance");
+        var response = await _client.GetAsync("/api/wallets/999999999/balance");
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
@@ -81,7 +81,7 @@ public class WalletsControllerTests : IClassFixture<WalletApiFactory>
     [Fact]
     public async Task Withdraw_UnknownWallet_Returns404()
     {
-        var response = await _client.PostAsJsonAsync($"/api/wallets/{Guid.NewGuid()}/withdrawals", new { amount = 10m });
+        var response = await _client.PostAsJsonAsync("/api/wallets/999999999/withdrawals", new { amount = 10m });
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }

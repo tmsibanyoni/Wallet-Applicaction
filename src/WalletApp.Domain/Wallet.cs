@@ -8,7 +8,7 @@ namespace WalletApp.Domain;
 /// </summary>
 public class Wallet
 {
-    public Guid Id { get; private set; }
+    public int Id { get; private set; }
     public string OwnerName { get; private set; } = string.Empty;
     public decimal Balance { get; private set; }
     public string Currency { get; private set; } = "USD";
@@ -25,11 +25,11 @@ public class Wallet
     {
     }
 
-    public Wallet(Guid id, string ownerName, decimal initialBalance, string currency = "USD")
+    public Wallet(int id, string ownerName, decimal initialBalance, string currency = "USD")
     {
-        if (id == Guid.Empty)
+        if (id <= 0)
         {
-            throw new ArgumentException("Wallet id must not be empty.", nameof(id));
+            throw new ArgumentOutOfRangeException(nameof(id), id, "Wallet id must be positive.");
         }
 
         if (string.IsNullOrWhiteSpace(ownerName))

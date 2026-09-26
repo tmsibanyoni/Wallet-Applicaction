@@ -1,12 +1,12 @@
 export interface BalanceResponse {
-  walletId: string;
+  walletId: number;
   balance: number;
   currency: string;
 }
 
 export interface WithdrawResult {
   withdrawalId: string;
-  walletId: string;
+  walletId: number;
   amount: number;
   balanceAfter: number;
   currency: string;
