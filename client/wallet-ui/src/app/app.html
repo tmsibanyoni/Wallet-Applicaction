@@ -1,0 +1,41 @@
+<main class="wallet-card">
+  <h1>Wallet</h1>
+
+  <label class="field">
+    <span>Wallet ID</span>
+    <div class="row">
+      <input type="text" [(ngModel)]="walletId" name="walletId" spellcheck="false" />
+      <button type="button" (click)="loadBalance()" [disabled]="loadingBalance()">
+        {{ loadingBalance() ? 'Loading…' : 'Load' }}
+      </button>
+    </div>
+  </label>
+
+  <div class="balance">
+    <span class="balance-label">Current balance</span>
+    <span class="balance-value" *ngIf="balance() !== null; else noBalance">
+      {{ balance() }} {{ currency() }}
+    </span>
+    <ng-template #noBalance><span class="balance-value muted">—</span></ng-template>
+  </div>
+
+  <form class="withdraw-form" (ngSubmit)="withdraw()">
+    <label class="field">
+      <span>Withdraw amount</span>
+      <input
+        type="number"
+        min="0.01"
+        step="0.01"
+        [(ngModel)]="withdrawAmount"
+        name="withdrawAmount"
+        placeholder="0.00"
+      />
+    </label>
+    <button type="submit" [disabled]="withdrawing()">
+      {{ withdrawing() ? 'Withdrawing…' : 'Withdraw' }}
+    </button>
+  </form>
+
+  <p class="message error" *ngIf="errorMessage()">{{ errorMessage() }}</p>
+  <p class="message success" *ngIf="successMessage()">{{ successMessage() }}</p>
+</main>

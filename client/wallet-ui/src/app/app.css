@@ -1,0 +1,117 @@
+:host {
+  display: flex;
+  justify-content: center;
+  padding: 3rem 1rem;
+  font-family: system-ui, sans-serif;
+}
+
+.wallet-card {
+  width: 100%;
+  max-width: 380px;
+  border: 1px solid #d8dde3;
+  border-radius: 10px;
+  padding: 1.75rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+h1 {
+  margin: 0 0 1.25rem;
+  font-size: 1.4rem;
+}
+
+.field {
+  display: block;
+  margin-bottom: 1rem;
+  font-size: 0.85rem;
+  color: #444;
+}
+
+.field span {
+  display: block;
+  margin-bottom: 0.3rem;
+}
+
+.field input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.5rem 0.6rem;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 0.95rem;
+}
+
+.row {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.row input {
+  flex: 1;
+}
+
+button {
+  padding: 0.5rem 0.9rem;
+  border: none;
+  border-radius: 6px;
+  background: #2f6fed;
+  color: white;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+button:disabled {
+  background: #9db6f0;
+  cursor: not-allowed;
+}
+
+.balance {
+  margin: 1.25rem 0;
+  padding: 1rem;
+  background: #f5f7fa;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.balance-label {
+  display: block;
+  font-size: 0.8rem;
+  color: #667;
+  margin-bottom: 0.25rem;
+}
+
+.balance-value {
+  font-size: 1.6rem;
+  font-weight: 600;
+}
+
+.balance-value.muted {
+  color: #99a;
+}
+
+.withdraw-form {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.75rem;
+}
+
+.withdraw-form .field {
+  flex: 1;
+  margin-bottom: 0;
+}
+
+.message {
+  margin-top: 1rem;
+  padding: 0.6rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+}
+
+.message.error {
+  background: #fdecea;
+  color: #a12820;
+}
+
+.message.success {
+  background: #eaf7ec;
+  color: #1e7b34;
+}
