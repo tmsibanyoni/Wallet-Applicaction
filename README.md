@@ -86,6 +86,42 @@ elsewhere, which is how CI does it.
 runs `dotnet test` against a SQL Server service container; another runs the Angular tests and a
 production build.
 
+## Screenshots
+
+Captured from the running app against the seeded wallet (123).
+
+### Withdrawing
+
+| Balance on load | Confirm step |
+| --- | --- |
+| ![Balance on load](docs/screenshots/01-balance.png) | ![Confirm withdrawal](docs/screenshots/02-confirm-withdrawal.png) |
+
+A withdrawal is never sent straight away: the UI shows the amount and the balance afterwards and waits for a confirmation.
+
+![Withdrawal succeeded](docs/screenshots/03-withdrawal-success.png)
+
+### Recent withdrawals
+
+The list is hidden by default and opens with the Show/Hide toggle. Newest first, with the balance after each withdrawal.
+
+![Recent withdrawals](docs/screenshots/04-recent-withdrawals.png)
+
+### Errors
+
+| Insufficient funds | More than two decimal places |
+| --- | --- |
+| ![Insufficient funds](docs/screenshots/05-insufficient-funds.png) | ![Too many decimals](docs/screenshots/06-too-many-decimals.png) |
+
+| Wallet not found | Service unreachable |
+| --- | --- |
+| ![Wallet not found](docs/screenshots/07-wallet-not-found.png) | ![Service unreachable](docs/screenshots/08-service-unreachable.png) |
+
+When the service can't be reached (or answers 429/5xx) the pending withdrawal is kept, so a retry reuses the same `Idempotency-Key` and can't double-spend.
+
+### Swagger
+
+![Swagger UI](docs/screenshots/09-swagger.png)
+
 ## Configuration
 
 Nothing environment-specific is baked into the code, and the option classes carry no defaults of
