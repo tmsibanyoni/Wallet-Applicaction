@@ -1,6 +1,5 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using WalletApp.Application.Abstractions;
 using WalletApp.Domain;
 using WalletApp.Domain.Abstractions;
 using WalletApp.Domain.Exceptions;
@@ -10,24 +9,21 @@ namespace WalletApp.Application.Wallets;
 /// <summary>
 /// Orchestrates the wallet use cases. Business invariants (sufficient funds, non-negative
 /// balance) live on <see cref="Wallet"/> itself; this class is responsible for loading/saving
-/// the aggregate, retrying on optimistic-concurrency conflicts, and publishing the resulting
-/// event once the change is durably committed.
+/// the aggregate and retrying on optimistic-concurrency conflicts. The resulting event is stored
+/// with the balance change (outbox) and delivered to the broker by a background dispatcher.
 /// </summary>
 public sealed class WalletService : IWalletService
 {
     private readonly IWalletRepository _walletRepository;
-    private readonly IWithdrawalEventBus _eventBus;
     private readonly ILogger<WalletService> _logger;
     private readonly int _maxConcurrencyRetries;
 
     public WalletService(
         IWalletRepository walletRepository,
-        IWithdrawalEventBus eventBus,
         IOptions<WalletServiceOptions> options,
         ILogger<WalletService> logger)
     {
         _walletRepository = walletRepository;
-        _eventBus = eventBus;
         _logger = logger;
         _maxConcurrencyRetries = options.Value.MaxConcurrencyRetries;
     }
@@ -64,8 +60,6 @@ public sealed class WalletService : IWalletService
                 continue;
             }
 
-            await PublishBestEffortAsync(withdrawalEvent, cancellationToken);
-
             return new WithdrawResult(
                 withdrawalEvent.EventId,
                 withdrawalEvent.WalletId,
@@ -73,20 +67,6 @@ public sealed class WalletService : IWalletService
                 withdrawalEvent.BalanceAfter,
                 withdrawalEvent.Currency,
                 withdrawalEvent.OccurredAtUtc);
-        }
-    }
-
-    private async Task PublishBestEffortAsync(WithdrawalCompleted withdrawalEvent, CancellationToken cancellationToken)
-    {
-        try
-        {
-            await _eventBus.PublishAsync(withdrawalEvent, cancellationToken);
-        }
-        catch (Exception ex)
-        {
-            // The event is already durably persisted by SaveWithdrawalAsync, so a live-bus
-            // failure must not fail an otherwise-successful withdrawal.
-            _logger.LogError(ex, "Failed to publish withdrawal event {EventId} to the live event bus.", withdrawalEvent.EventId);
         }
     }
 }

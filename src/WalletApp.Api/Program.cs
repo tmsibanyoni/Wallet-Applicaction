@@ -35,9 +35,23 @@ builder.Services.AddScoped<IWalletService, WalletService>();
 builder.Services.Configure<WalletServiceOptions>(builder.Configuration.GetSection(WalletServiceOptions.SectionName));
 builder.Services.Configure<WalletSeedOptions>(builder.Configuration.GetSection(WalletSeedOptions.SectionName));
 
-builder.Services.AddSingleton<InProcessWithdrawalEventBus>();
-builder.Services.AddSingleton<IWithdrawalEventBus>(sp => sp.GetRequiredService<InProcessWithdrawalEventBus>());
-builder.Services.AddHostedService<WithdrawalEventLoggingConsumer>();
+builder.Services.Configure<OutboxOptions>(builder.Configuration.GetSection(OutboxOptions.SectionName));
+builder.Services.Configure<EventBusOptions>(builder.Configuration.GetSection(EventBusOptions.SectionName));
+builder.Services.Configure<RabbitMqOptions>(builder.Configuration.GetSection(RabbitMqOptions.SectionName));
+
+var eventBusProvider = builder.Configuration[$"{EventBusOptions.SectionName}:{nameof(EventBusOptions.Provider)}"];
+if (string.Equals(eventBusProvider, EventBusOptions.LogProvider, StringComparison.OrdinalIgnoreCase))
+{
+    builder.Services.AddSingleton<IWithdrawalEventBus, LoggingWithdrawalEventBus>();
+}
+else
+{
+    builder.Services.AddSingleton<IWithdrawalEventBus, RabbitMqWithdrawalEventBus>();
+    builder.Services.AddHostedService<RabbitMqWithdrawalEventConsumer>();
+}
+
+builder.Services.AddSingleton<OutboxDispatcher>();
+builder.Services.AddHostedService(sp => sp.GetRequiredService<OutboxDispatcher>());
 
 builder.Services.AddExceptionHandler<ApiExceptionHandler>();
 builder.Services.AddProblemDetails();

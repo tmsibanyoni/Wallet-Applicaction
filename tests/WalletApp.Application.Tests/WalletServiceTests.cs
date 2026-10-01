@@ -1,7 +1,6 @@
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Moq;
-using WalletApp.Application.Abstractions;
 using WalletApp.Application.Wallets;
 using WalletApp.Domain;
 using WalletApp.Domain.Abstractions;
@@ -13,13 +12,12 @@ namespace WalletApp.Application.Tests;
 public class WalletServiceTests
 {
     private readonly Mock<IWalletRepository> _repository = new();
-    private readonly Mock<IWithdrawalEventBus> _eventBus = new();
     private readonly WalletService _sut;
 
     public WalletServiceTests()
     {
         var options = Options.Create(new WalletServiceOptions { MaxConcurrencyRetries = 3 });
-        _sut = new WalletService(_repository.Object, _eventBus.Object, options, NullLogger<WalletService>.Instance);
+        _sut = new WalletService(_repository.Object, options, NullLogger<WalletService>.Instance);
     }
 
     private static Wallet NewWallet(decimal balance = 100m, int id = 1) => new(id, "Owner", balance, "USD");
@@ -47,7 +45,7 @@ public class WalletServiceTests
     }
 
     [Fact]
-    public async Task WithdrawAsync_Success_SavesAndPublishesEventAndReturnsResult()
+    public async Task WithdrawAsync_Success_SavesWithEventAndReturnsResult()
     {
         var wallet = NewWallet(100m);
         _repository.Setup(r => r.GetByIdAsync(wallet.Id, It.IsAny<CancellationToken>())).ReturnsAsync(wallet);
@@ -61,10 +59,6 @@ public class WalletServiceTests
         _repository.Verify(r => r.SaveWithdrawalAsync(
             wallet,
             It.Is<WithdrawalCompleted>(e => e.Amount == 40m && e.BalanceAfter == 60m),
-            It.IsAny<CancellationToken>()), Times.Once);
-
-        _eventBus.Verify(b => b.PublishAsync(
-            It.Is<WithdrawalCompleted>(e => e.WalletId == wallet.Id && e.Amount == 40m),
             It.IsAny<CancellationToken>()), Times.Once);
     }
 
@@ -100,11 +94,10 @@ public class WalletServiceTests
         await Assert.ThrowsAsync<WalletNotFoundException>(() => _sut.WithdrawAsync(new WithdrawCommand(walletId, 10m)));
 
         _repository.Verify(r => r.SaveWithdrawalAsync(It.IsAny<Wallet>(), It.IsAny<WithdrawalCompleted>(), It.IsAny<CancellationToken>()), Times.Never);
-        _eventBus.Verify(b => b.PublishAsync(It.IsAny<WithdrawalCompleted>(), It.IsAny<CancellationToken>()), Times.Never);
     }
 
     [Fact]
-    public async Task WithdrawAsync_InsufficientFunds_ThrowsAndNeverSavesOrPublishes()
+    public async Task WithdrawAsync_InsufficientFunds_ThrowsAndNeverSaves()
     {
         var wallet = NewWallet(10m);
         _repository.Setup(r => r.GetByIdAsync(wallet.Id, It.IsAny<CancellationToken>())).ReturnsAsync(wallet);
@@ -112,7 +105,6 @@ public class WalletServiceTests
         await Assert.ThrowsAsync<InsufficientFundsException>(() => _sut.WithdrawAsync(new WithdrawCommand(wallet.Id, 20m)));
 
         _repository.Verify(r => r.SaveWithdrawalAsync(It.IsAny<Wallet>(), It.IsAny<WithdrawalCompleted>(), It.IsAny<CancellationToken>()), Times.Never);
-        _eventBus.Verify(b => b.PublishAsync(It.IsAny<WithdrawalCompleted>(), It.IsAny<CancellationToken>()), Times.Never);
         Assert.Equal(10m, wallet.Balance);
     }
 
@@ -136,7 +128,6 @@ public class WalletServiceTests
 
         Assert.Equal(70m, result.BalanceAfter);
         _repository.Verify(r => r.GetByIdAsync(It.IsAny<int>(), It.IsAny<CancellationToken>()), Times.Exactly(2));
-        _eventBus.Verify(b => b.PublishAsync(It.IsAny<WithdrawalCompleted>(), It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]
@@ -156,20 +147,5 @@ public class WalletServiceTests
 
         await Assert.ThrowsAsync<ConcurrencyConflictException>(() => _sut.WithdrawAsync(new WithdrawCommand(walletId, 10m)));
 
-        _eventBus.Verify(b => b.PublishAsync(It.IsAny<WithdrawalCompleted>(), It.IsAny<CancellationToken>()), Times.Never);
-    }
-
-    [Fact]
-    public async Task WithdrawAsync_EventBusThrows_StillReturnsSuccessfulResult()
-    {
-        // The durable save already succeeded; a live-bus failure must not fail the request.
-        var wallet = NewWallet(100m);
-        _repository.Setup(r => r.GetByIdAsync(wallet.Id, It.IsAny<CancellationToken>())).ReturnsAsync(wallet);
-        _eventBus.Setup(b => b.PublishAsync(It.IsAny<WithdrawalCompleted>(), It.IsAny<CancellationToken>()))
-            .ThrowsAsync(new InvalidOperationException("bus unavailable"));
-
-        var result = await _sut.WithdrawAsync(new WithdrawCommand(wallet.Id, 25m));
-
-        Assert.Equal(75m, result.BalanceAfter);
     }
 }

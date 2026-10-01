@@ -33,6 +33,9 @@ public sealed class WalletApiFactory : WebApplicationFactory<Program>, IAsyncLif
             config.AddInMemoryCollection(new Dictionary<string, string?>
             {
                 ["ConnectionStrings:WalletDb"] = TestConnectionString,
+                // No broker in the test host; tests drive the outbox dispatcher themselves.
+                ["EventBus:Provider"] = "Log",
+                ["Outbox:Enabled"] = "false",
             });
         });
     }
