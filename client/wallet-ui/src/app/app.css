@@ -1,4 +1,6 @@
 :host {
+  --accent: #0072ce;
+  --accent-disabled: color-mix(in srgb, var(--accent) 40%, white);
   display: flex;
   justify-content: center;
   padding: 3rem 1rem;
@@ -40,6 +42,12 @@ h1 {
   font-size: 0.95rem;
 }
 
+.field input:focus {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+  border-color: var(--accent);
+}
+
 .row {
   display: flex;
   gap: 0.5rem;
@@ -53,14 +61,14 @@ button {
   padding: 0.5rem 0.9rem;
   border: none;
   border-radius: 6px;
-  background: #2f6fed;
+  background: var(--accent);
   color: white;
   font-size: 0.9rem;
   cursor: pointer;
 }
 
 button:disabled {
-  background: #9db6f0;
+  background: var(--accent-disabled);
   cursor: not-allowed;
 }
 

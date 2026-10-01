@@ -88,7 +88,7 @@ Nothing environment-specific is baked into the code. Everything lives in
 ## API
 
 Two endpoints, both under `/api/wallets/{walletId}`, where `walletId` is a plain integer (the
-seed wallet's id is `1`) rather than a GUID — easier to read, type, and put in a URL for a small
+seed wallet is `123`, starting at ZAR 1,000.00, matching the example in the brief) rather than a GUID — easier to read, type, and put in a URL for a small
 demo like this one. See the trade-off note below on why that's not free.
 
 - `GET /balance` → `{ walletId, balance, currency }`

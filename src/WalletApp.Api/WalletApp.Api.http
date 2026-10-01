@@ -1,11 +1,11 @@
 @WalletApp.Api_HostAddress = http://localhost:5080
 
-GET {{WalletApp.Api_HostAddress}}/api/wallets/1/balance
+GET {{WalletApp.Api_HostAddress}}/api/wallets/123/balance
 Accept: application/json
 
 ###
 
-POST {{WalletApp.Api_HostAddress}}/api/wallets/1/withdrawals
+POST {{WalletApp.Api_HostAddress}}/api/wallets/123/withdrawals
 Content-Type: application/json
 
 {
