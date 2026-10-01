@@ -43,7 +43,7 @@ public sealed class ApiExceptionHandler : IExceptionHandler
             _logger.LogInformation(exception, "Request {Method} {Path} failed with {StatusCode}", httpContext.Request.Method, httpContext.Request.Path, statusCode);
         }
 
-        // Server-side failures keep their technical detail in the logs only; the caller gets a
+        // Server-side failures keep their technical detail in the logs only, the caller gets a
         // plain message plus a reference id that matches the log entry.
         var detail = statusCode >= StatusCodes.Status500InternalServerError
             ? "Something went wrong on our side. Please try again shortly."
