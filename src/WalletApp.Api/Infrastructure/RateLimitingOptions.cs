@@ -5,13 +5,13 @@ public sealed class RateLimitingOptions
 {
     public const string SectionName = "RateLimiting";
 
-    public bool Enabled { get; set; } = true;
+    public bool Enabled { get; set; }
 
     /// <summary>Requests a single client may make in one window to read endpoints (GET).</summary>
-    public int ReadPermitLimit { get; set; } = 120;
+    public int ReadPermitLimit { get; set; }
 
     /// <summary>Requests a single client may make in one window to write endpoints (POST and the like).</summary>
-    public int WritePermitLimit { get; set; } = 30;
+    public int WritePermitLimit { get; set; }
 
-    public int WindowSeconds { get; set; } = 60;
+    public int WindowSeconds { get; set; }
 }

@@ -16,7 +16,13 @@ public class WalletServiceTests
 
     public WalletServiceTests()
     {
-        var options = Options.Create(new WalletServiceOptions { MaxConcurrencyRetries = 3 });
+        var options = Options.Create(new WalletServiceOptions
+        {
+            MaxConcurrencyRetries = 3,
+            MaxIdempotencyKeyLength = 100,
+            HistoryDefaultPageSize = 20,
+            HistoryMaxPageSize = 100,
+        });
         _sut = new WalletService(_repository.Object, options, NullLogger<WalletService>.Instance);
     }
 

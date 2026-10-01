@@ -10,14 +10,14 @@ public sealed class WalletServiceOptions
     /// <see cref="Domain.Exceptions.ConcurrencyConflictException"/>) before giving up and letting
     /// the conflict surface to the caller as a 503.
     /// </summary>
-    public int MaxConcurrencyRetries { get; set; } = 3;
+    public int MaxConcurrencyRetries { get; set; }
 
     /// <summary>Longest idempotency key accepted, matching the database column.</summary>
-    public int MaxIdempotencyKeyLength { get; set; } = 100;
+    public int MaxIdempotencyKeyLength { get; set; }
 
     /// <summary>How many history rows to return when the caller does not say.</summary>
-    public int HistoryDefaultPageSize { get; set; } = 20;
+    public int HistoryDefaultPageSize { get; set; }
 
     /// <summary>The most history rows a caller may ask for in one request.</summary>
-    public int HistoryMaxPageSize { get; set; } = 100;
+    public int HistoryMaxPageSize { get; set; }
 }

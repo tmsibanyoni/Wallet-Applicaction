@@ -8,12 +8,12 @@ public sealed class TelemetryOptions
     public const string ConsoleExporter = "Console";
     public const string OtlpExporter = "Otlp";
 
-    public bool Enabled { get; set; } = true;
+    public bool Enabled { get; set; }
 
-    public string ServiceName { get; set; } = "wallet-api";
+    public string ServiceName { get; set; } = string.Empty;
 
     /// <summary>"Console" prints finished spans to stdout, "Otlp" sends them to <see cref="OtlpEndpoint"/>, anything else exports nothing.</summary>
-    public string Exporter { get; set; } = ConsoleExporter;
+    public string Exporter { get; set; } = string.Empty;
 
     public string? OtlpEndpoint { get; set; }
 }
