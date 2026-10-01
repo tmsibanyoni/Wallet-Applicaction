@@ -42,7 +42,8 @@ public sealed class WalletsController : ControllerBase
     public async Task<ActionResult<WithdrawResult>> Withdraw(
         int walletId, [FromBody] WithdrawRequest request, CancellationToken cancellationToken)
     {
-        var result = await _walletService.WithdrawAsync(walletId, request.Amount, cancellationToken);
+        var result = await _walletService.WithdrawAsync(
+            new WithdrawCommand(walletId, request.Amount, request.Currency), cancellationToken);
         return Ok(result);
     }
 }

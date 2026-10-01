@@ -26,6 +26,7 @@ public sealed class WalletDbContext : DbContext
             builder.Property(w => w.OwnerName).IsRequired().HasMaxLength(200);
             builder.Property(w => w.Currency).IsRequired().HasMaxLength(3);
             builder.Property(w => w.Balance).HasColumnType("decimal(18,2)");
+            builder.Ignore(w => w.CurrentBalance);
 
             // Optimistic concurrency: EF includes Version in the WHERE clause of every UPDATE,
             // so a second writer working from a stale copy gets a DbUpdateConcurrencyException

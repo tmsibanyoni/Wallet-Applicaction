@@ -79,6 +79,39 @@ public class WalletsControllerTests : IClassFixture<WalletApiFactory>
     }
 
     [Fact]
+    public async Task Withdraw_WithSubCentAmount_Returns400AndLeavesBalanceUnchanged()
+    {
+        var wallet = await _factory.SeedWalletAsync(balance: 50m);
+
+        var response = await _client.PostAsJsonAsync($"/api/wallets/{wallet.Id}/withdrawals", new { amount = 10.005m });
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Equal(50m, await _factory.GetPersistedBalanceAsync(wallet.Id));
+    }
+
+    [Fact]
+    public async Task Withdraw_InAnotherCurrency_Returns400AndLeavesBalanceUnchanged()
+    {
+        var wallet = await _factory.SeedWalletAsync(balance: 50m, currency: "ZAR");
+
+        var response = await _client.PostAsJsonAsync($"/api/wallets/{wallet.Id}/withdrawals", new { amount = 10m, currency = "USD" });
+
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        Assert.Equal(50m, await _factory.GetPersistedBalanceAsync(wallet.Id));
+    }
+
+    [Fact]
+    public async Task Withdraw_WithMatchingCurrency_Returns200()
+    {
+        var wallet = await _factory.SeedWalletAsync(balance: 50m, currency: "ZAR");
+
+        var response = await _client.PostAsJsonAsync($"/api/wallets/{wallet.Id}/withdrawals", new { amount = 10m, currency = "ZAR" });
+
+        response.EnsureSuccessStatusCode();
+        Assert.Equal(40m, await _factory.GetPersistedBalanceAsync(wallet.Id));
+    }
+
+    [Fact]
     public async Task Withdraw_UnknownWallet_Returns404()
     {
         var response = await _client.PostAsJsonAsync("/api/wallets/999999999/withdrawals", new { amount = 10m });

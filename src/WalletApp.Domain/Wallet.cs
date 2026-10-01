@@ -13,6 +13,9 @@ public class Wallet
     public decimal Balance { get; private set; }
     public string Currency { get; private set; } = "USD";
 
+    /// <summary>The balance as a <see cref="Money"/> value (not persisted separately; derived from Balance + Currency).</summary>
+    public Money CurrentBalance => new(Balance, Currency);
+
     /// <summary>
     /// Optimistic concurrency token. Incremented on every state change and mapped as an
     /// EF Core concurrency token so two concurrent withdrawals can never both apply
@@ -47,10 +50,12 @@ public class Wallet
             throw new ArgumentOutOfRangeException(nameof(initialBalance), initialBalance, "Initial balance cannot be negative.");
         }
 
+        var opening = new Money(initialBalance, currency);
+
         Id = id;
         OwnerName = ownerName;
-        Balance = initialBalance;
-        Currency = currency;
+        Balance = opening.Amount;
+        Currency = opening.Currency;
         Version = 0;
     }
 
@@ -60,27 +65,37 @@ public class Wallet
     /// and never allowed to go negative. Returns the event describing the completed withdrawal so
     /// the caller can publish it - the wallet never publishes events itself, it only describes them.
     /// </summary>
-    public WithdrawalCompleted Withdraw(decimal amount)
+    public WithdrawalCompleted Withdraw(Money amount)
     {
-        if (amount <= 0)
+        var balance = CurrentBalance;
+
+        if (!string.Equals(amount.Currency, Currency, StringComparison.Ordinal))
         {
-            throw new ArgumentOutOfRangeException(nameof(amount), amount, "Withdrawal amount must be greater than zero.");
+            throw new CurrencyMismatchException(Currency, amount.Currency);
         }
 
-        if (amount > Balance)
+        if (amount.IsZero)
         {
-            throw new InsufficientFundsException(Id, Balance, amount);
+            throw new ArgumentOutOfRangeException(nameof(amount), amount.Amount, "Withdrawal amount must be greater than zero.");
         }
 
-        Balance -= amount;
+        if (amount.IsGreaterThan(balance))
+        {
+            throw new InsufficientFundsException(Id, Balance, amount.Amount);
+        }
+
+        Balance = balance.Subtract(amount).Amount;
         Version++;
 
         return new WithdrawalCompleted(
             EventId: Guid.NewGuid(),
             WalletId: Id,
-            Amount: amount,
+            Amount: amount.Amount,
             BalanceAfter: Balance,
             Currency: Currency,
             OccurredAtUtc: DateTimeOffset.UtcNow);
     }
+
+    /// <summary>Convenience overload for callers that already know the amount is in the wallet's own currency.</summary>
+    public WithdrawalCompleted Withdraw(decimal amount) => Withdraw(new Money(amount, Currency));
 }

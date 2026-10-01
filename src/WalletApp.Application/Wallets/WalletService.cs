@@ -40,15 +40,17 @@ public sealed class WalletService : IWalletService
         return new BalanceResponse(wallet.Id, wallet.Balance, wallet.Currency);
     }
 
-    public async Task<WithdrawResult> WithdrawAsync(int walletId, decimal amount, CancellationToken cancellationToken = default)
+    public async Task<WithdrawResult> WithdrawAsync(WithdrawCommand command, CancellationToken cancellationToken = default)
     {
+        var walletId = command.WalletId;
+
         for (var attempt = 1; ; attempt++)
         {
             var wallet = await _walletRepository.GetByIdAsync(walletId, cancellationToken)
                 ?? throw new WalletNotFoundException(walletId);
 
             // Throws InsufficientFundsException / ArgumentOutOfRangeException without touching storage.
-            var withdrawalEvent = wallet.Withdraw(amount);
+            var withdrawalEvent = wallet.Withdraw(new Money(command.Amount, command.Currency ?? wallet.Currency));
 
             try
             {

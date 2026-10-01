@@ -23,6 +23,7 @@ public sealed class ApiExceptionHandler : IExceptionHandler
         {
             WalletNotFoundException => (StatusCodes.Status404NotFound, "Wallet not found"),
             InsufficientFundsException => (StatusCodes.Status409Conflict, "Insufficient funds"),
+            CurrencyMismatchException => (StatusCodes.Status400BadRequest, "Currency mismatch"),
             ArgumentOutOfRangeException or ArgumentException => (StatusCodes.Status400BadRequest, "Invalid request"),
             ConcurrencyConflictException => (StatusCodes.Status503ServiceUnavailable, "Wallet is busy, please retry"),
             _ => (StatusCodes.Status500InternalServerError, "An unexpected error occurred"),

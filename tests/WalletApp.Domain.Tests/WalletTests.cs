@@ -96,6 +96,35 @@ public class WalletTests
     }
 
     [Fact]
+    public void Withdraw_InAnotherCurrency_ThrowsAndLeavesBalanceUnchanged()
+    {
+        var wallet = CreateWallet(100m);
+
+        Assert.Throws<CurrencyMismatchException>(() => wallet.Withdraw(new Money(10m, "ZAR")));
+
+        Assert.Equal(100m, wallet.Balance);
+        Assert.Equal(0, wallet.Version);
+    }
+
+    [Fact]
+    public void Withdraw_WithSubCentAmount_ThrowsAndLeavesBalanceUnchanged()
+    {
+        var wallet = CreateWallet(100m);
+
+        Assert.Throws<ArgumentOutOfRangeException>(() => wallet.Withdraw(10.005m));
+
+        Assert.Equal(100m, wallet.Balance);
+    }
+
+    [Fact]
+    public void CurrentBalance_ReflectsBalanceAndCurrency()
+    {
+        var wallet = CreateWallet(75.25m);
+
+        Assert.Equal(new Money(75.25m, "USD"), wallet.CurrentBalance);
+    }
+
+    [Fact]
     public void Withdraw_OnSuccess_IncrementsVersionForOptimisticConcurrency()
     {
         var wallet = CreateWallet(100m);
