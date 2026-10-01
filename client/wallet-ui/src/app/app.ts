@@ -35,6 +35,7 @@ export class App implements OnInit {
   withdrawing = signal(false);
   pendingWithdrawal = signal<PendingWithdrawal | null>(null);
   history = signal<WithdrawalSummary[]>([]);
+  showHistory = signal(false);
   errorMessage = signal<string | null>(null);
   successMessage = signal<string | null>(null);
 
@@ -117,6 +118,10 @@ export class App implements OnInit {
         this.loadingBalance.set(false);
       },
     });
+  }
+
+  toggleHistory(): void {
+    this.showHistory.update((open) => !open);
   }
 
   /** Reads the recent withdrawals; the list is a convenience, so a failure just leaves the old one showing. */

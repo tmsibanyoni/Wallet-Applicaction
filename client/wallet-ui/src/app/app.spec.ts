@@ -187,11 +187,34 @@ describe('App', () => {
       return fixture;
     }
 
+    function show(fixture: ReturnType<typeof loadedFixture>) {
+      (fixture.nativeElement as HTMLElement).querySelector<HTMLButtonElement>('#toggle-history')!.click();
+      fixture.detectChanges();
+    }
+
+    it('keeps the list hidden until Show is clicked, then hides it again', () => {
+      const fixture = loadedFixture();
+      httpMock.expectOne(historyUrl).flush([entry]);
+      fixture.detectChanges();
+      const root = fixture.nativeElement as HTMLElement;
+
+      expect(root.querySelector('#history-body')).toBeNull();
+      expect(root.querySelector('#toggle-history')?.textContent?.trim()).toBe('Show');
+
+      show(fixture);
+      expect(root.querySelector('#history-body')).not.toBeNull();
+      expect(root.querySelector('#toggle-history')?.textContent?.trim()).toBe('Hide');
+
+      show(fixture);
+      expect(root.querySelector('#history-body')).toBeNull();
+    });
+
     it('loads the recent withdrawals along with the balance and lists them', () => {
       const fixture = loadedFixture();
 
       httpMock.expectOne(historyUrl).flush([entry]);
       fixture.detectChanges();
+      show(fixture);
 
       expect(fixture.componentInstance.history()).toEqual([entry]);
       expect((fixture.nativeElement as HTMLElement).querySelector('.history')?.textContent).toContain('R');
@@ -202,6 +225,7 @@ describe('App', () => {
 
       httpMock.expectOne(historyUrl).flush([]);
       fixture.detectChanges();
+      show(fixture);
 
       expect((fixture.nativeElement as HTMLElement).querySelector('.history')?.textContent).toContain('No withdrawals yet');
     });

@@ -69,14 +69,28 @@
   <p class="message success" *ngIf="successMessage()">{{ successMessage() }}</p>
 
   <section class="history" *ngIf="balance() !== null" aria-labelledby="history-title">
-    <h2 id="history-title">Recent withdrawals</h2>
-    <p class="muted" *ngIf="history().length === 0">No withdrawals yet.</p>
-    <ul *ngIf="history().length > 0">
-      <li *ngFor="let item of history()">
-        <span class="history-when">{{ item.occurredAtUtc | date: 'd MMM y, HH:mm' }}</span>
-        <span class="history-amount">&minus;{{ formatMoney(item.amount, item.currency) }}</span>
-        <span class="history-balance">{{ formatMoney(item.balanceAfter, item.currency) }}</span>
-      </li>
-    </ul>
+    <div class="history-header">
+      <h2 id="history-title">Recent withdrawals</h2>
+      <button
+        type="button"
+        id="toggle-history"
+        class="link"
+        [attr.aria-expanded]="showHistory()"
+        aria-controls="history-body"
+        (click)="toggleHistory()"
+      >
+        {{ showHistory() ? 'Hide' : 'Show' }}
+      </button>
+    </div>
+    <div id="history-body" *ngIf="showHistory()">
+      <p class="muted" *ngIf="history().length === 0">No withdrawals yet.</p>
+      <ul *ngIf="history().length > 0">
+        <li *ngFor="let item of history()">
+          <span class="history-when">{{ item.occurredAtUtc | date: 'd MMM y, HH:mm' }}</span>
+          <span class="history-amount">&minus;{{ formatMoney(item.amount, item.currency) }}</span>
+          <span class="history-balance">{{ formatMoney(item.balanceAfter, item.currency) }}</span>
+        </li>
+      </ul>
+    </div>
   </section>
 </main>
