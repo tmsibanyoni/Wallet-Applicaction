@@ -19,6 +19,7 @@ public sealed class WithdrawalEventRecord
     public string Currency { get; private set; } = string.Empty;
     public DateTimeOffset OccurredAtUtc { get; private set; }
     public DateTimeOffset? DispatchedAtUtc { get; private set; }
+    public string? IdempotencyKey { get; private set; }
 
     private WithdrawalEventRecord()
     {
@@ -32,9 +33,10 @@ public sealed class WithdrawalEventRecord
         BalanceAfter = withdrawalEvent.BalanceAfter,
         Currency = withdrawalEvent.Currency,
         OccurredAtUtc = withdrawalEvent.OccurredAtUtc,
+        IdempotencyKey = withdrawalEvent.IdempotencyKey,
     };
 
-    public WithdrawalCompleted ToEvent() => new(Id, WalletId, Amount, BalanceAfter, Currency, OccurredAtUtc);
+    public WithdrawalCompleted ToEvent() => new(Id, WalletId, Amount, BalanceAfter, Currency, OccurredAtUtc, IdempotencyKey);
 
     public void MarkDispatched(DateTimeOffset dispatchedAtUtc) => DispatchedAtUtc = dispatchedAtUtc;
 }

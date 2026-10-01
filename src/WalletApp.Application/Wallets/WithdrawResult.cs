@@ -6,4 +6,5 @@ public sealed record WithdrawResult(
     decimal Amount,
     decimal BalanceAfter,
     string Currency,
-    DateTimeOffset OccurredAtUtc);
+    DateTimeOffset OccurredAtUtc,
+    bool Replayed = false);

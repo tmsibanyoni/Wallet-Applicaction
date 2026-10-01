@@ -148,4 +148,87 @@ public class WalletServiceTests
         await Assert.ThrowsAsync<ConcurrencyConflictException>(() => _sut.WithdrawAsync(new WithdrawCommand(walletId, 10m)));
 
     }
+
+    private static WithdrawalCompleted StoredWithdrawal(int walletId, decimal amount, decimal balanceAfter, string key)
+        => new(Guid.NewGuid(), walletId, amount, balanceAfter, "USD", DateTimeOffset.UtcNow, key);
+
+    [Fact]
+    public async Task WithdrawAsync_KeyAlreadyUsedWithSameRequest_ReplaysStoredResultWithoutSaving()
+    {
+        var wallet = NewWallet(60m);
+        var stored = StoredWithdrawal(wallet.Id, 40m, 60m, "key-1");
+        _repository.Setup(r => r.GetByIdAsync(wallet.Id, It.IsAny<CancellationToken>())).ReturnsAsync(wallet);
+        _repository.Setup(r => r.FindWithdrawalByKeyAsync(wallet.Id, "key-1", It.IsAny<CancellationToken>())).ReturnsAsync(stored);
+
+        var result = await _sut.WithdrawAsync(new WithdrawCommand(wallet.Id, 40m, "USD", "key-1"));
+
+        Assert.True(result.Replayed);
+        Assert.Equal(stored.EventId, result.WithdrawalId);
+        Assert.Equal(60m, result.BalanceAfter);
+        Assert.Equal(60m, wallet.Balance);
+        _repository.Verify(r => r.SaveWithdrawalAsync(It.IsAny<Wallet>(), It.IsAny<WithdrawalCompleted>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task WithdrawAsync_KeyAlreadyUsedWithDifferentAmount_ThrowsReuseException()
+    {
+        var wallet = NewWallet(60m);
+        _repository.Setup(r => r.GetByIdAsync(wallet.Id, It.IsAny<CancellationToken>())).ReturnsAsync(wallet);
+        _repository.Setup(r => r.FindWithdrawalByKeyAsync(wallet.Id, "key-1", It.IsAny<CancellationToken>()))
+            .ReturnsAsync(StoredWithdrawal(wallet.Id, 40m, 60m, "key-1"));
+
+        await Assert.ThrowsAsync<IdempotencyKeyReuseException>(
+            () => _sut.WithdrawAsync(new WithdrawCommand(wallet.Id, 10m, null, "key-1")));
+
+        _repository.Verify(r => r.SaveWithdrawalAsync(It.IsAny<Wallet>(), It.IsAny<WithdrawalCompleted>(), It.IsAny<CancellationToken>()), Times.Never);
+    }
+
+    [Fact]
+    public async Task WithdrawAsync_NewKey_StoresTheKeyOnTheEvent()
+    {
+        var wallet = NewWallet(100m);
+        _repository.Setup(r => r.GetByIdAsync(wallet.Id, It.IsAny<CancellationToken>())).ReturnsAsync(wallet);
+
+        var result = await _sut.WithdrawAsync(new WithdrawCommand(wallet.Id, 25m, null, "  key-2  "));
+
+        Assert.False(result.Replayed);
+        _repository.Verify(r => r.SaveWithdrawalAsync(
+            wallet,
+            It.Is<WithdrawalCompleted>(e => e.IdempotencyKey == "key-2"),
+            It.IsAny<CancellationToken>()), Times.Once);
+    }
+
+    [Fact]
+    public async Task WithdrawAsync_LostRaceOnKey_RetriesAndReplaysTheWinnersResult()
+    {
+        var wallet = NewWallet(100m);
+        var winner = StoredWithdrawal(wallet.Id, 25m, 75m, "key-3");
+        _repository.Setup(r => r.GetByIdAsync(wallet.Id, It.IsAny<CancellationToken>())).ReturnsAsync(wallet);
+        _repository.SetupSequence(r => r.FindWithdrawalByKeyAsync(wallet.Id, "key-3", It.IsAny<CancellationToken>()))
+            .ReturnsAsync((WithdrawalCompleted?)null)
+            .ReturnsAsync(winner);
+        _repository.Setup(r => r.SaveWithdrawalAsync(It.IsAny<Wallet>(), It.IsAny<WithdrawalCompleted>(), It.IsAny<CancellationToken>()))
+            .ThrowsAsync(new DuplicateIdempotencyKeyException(wallet.Id, "key-3", new Exception("duplicate")));
+
+        var result = await _sut.WithdrawAsync(new WithdrawCommand(wallet.Id, 25m, null, "key-3"));
+
+        Assert.True(result.Replayed);
+        Assert.Equal(winner.EventId, result.WithdrawalId);
+    }
+
+    [Theory]
+    [InlineData("")]
+    [InlineData("   ")]
+    public async Task WithdrawAsync_BlankKey_IsRejected(string key)
+    {
+        await Assert.ThrowsAsync<ArgumentException>(() => _sut.WithdrawAsync(new WithdrawCommand(1, 10m, null, key)));
+    }
+
+    [Fact]
+    public async Task WithdrawAsync_KeyLongerThanLimit_IsRejected()
+    {
+        var key = new string('k', 101);
+
+        await Assert.ThrowsAsync<ArgumentException>(() => _sut.WithdrawAsync(new WithdrawCommand(1, 10m, null, key)));
+    }
 }

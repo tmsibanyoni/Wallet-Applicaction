@@ -11,4 +11,5 @@ public sealed record WithdrawalCompleted(
     decimal Amount,
     decimal BalanceAfter,
     string Currency,
-    DateTimeOffset OccurredAtUtc);
+    DateTimeOffset OccurredAtUtc,
+    string? IdempotencyKey = null);

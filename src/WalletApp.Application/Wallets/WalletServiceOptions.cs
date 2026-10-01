@@ -11,4 +11,7 @@ public sealed class WalletServiceOptions
     /// the conflict surface to the caller as a 503.
     /// </summary>
     public int MaxConcurrencyRetries { get; set; } = 3;
+
+    /// <summary>Longest idempotency key accepted, matching the database column.</summary>
+    public int MaxIdempotencyKeyLength { get; set; } = 100;
 }

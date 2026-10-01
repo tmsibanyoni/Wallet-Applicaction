@@ -43,6 +43,12 @@ public sealed class WalletDbContext : DbContext
             builder.HasIndex(e => e.OccurredAtUtc)
                 .HasFilter("[DispatchedAtUtc] IS NULL")
                 .HasDatabaseName("IX_WithdrawalEvents_Pending");
+            builder.Property(e => e.IdempotencyKey).HasMaxLength(100);
+            // One withdrawal per (wallet, key): the database settles races between parallel retries.
+            builder.HasIndex(e => new { e.WalletId, e.IdempotencyKey })
+                .IsUnique()
+                .HasFilter("[IdempotencyKey] IS NOT NULL")
+                .HasDatabaseName("UX_WithdrawalEvents_WalletId_IdempotencyKey");
             builder.Property(e => e.EventType).IsRequired().HasMaxLength(100);
             builder.Property(e => e.Currency).IsRequired().HasMaxLength(3);
             builder.Property(e => e.Amount).HasColumnType("decimal(18,2)");
