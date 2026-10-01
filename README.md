@@ -231,5 +231,5 @@ Thabang Sibanyoni did the design and made the decisions on this project. Claude 
 assistant) helped with the implementation, working from the instructions and commands Thabang
 gave it, and the work was reviewed and run locally before being committed.
 
-Commits that include Claude's work carry a `Co-Authored-By: Claude` trailer, so the history shows
-where it helped.
+The earlier commits carry a `Co-Authored-By: Claude` trailer. Later commits are credited to Thabang
+only, although Claude still helped with the implementation throughout.
