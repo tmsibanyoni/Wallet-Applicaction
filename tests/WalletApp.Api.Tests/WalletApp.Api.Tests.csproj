@@ -21,6 +21,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Update="testsettings.json" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\src\WalletApp.Api\WalletApp.Api.csproj" />
     <ProjectReference Include="..\..\src\WalletApp.Infrastructure\WalletApp.Infrastructure.csproj" />
     <ProjectReference Include="..\..\src\WalletApp.Domain\WalletApp.Domain.csproj" />

@@ -1,0 +1,72 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  backend:
+    name: .NET build and tests
+    runs-on: ubuntu-latest
+
+    services:
+      sqlserver:
+        image: mcr.microsoft.com/mssql/server:2022-latest
+        env:
+          # Throwaway password; the container only lives for the length of the job.
+          ACCEPT_EULA: "Y"
+          MSSQL_SA_PASSWORD: Wallet_Ci_Passw0rd!
+        ports:
+          - 1433:1433
+        options: >-
+          --health-cmd "/opt/mssql-tools18/bin/sqlcmd -C -S localhost -U sa -P $MSSQL_SA_PASSWORD -Q 'SELECT 1'"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 12
+          --health-start-period 20s
+
+    env:
+      # The integration tests read these (see tests/WalletApp.Api.Tests/testsettings.json for the local defaults).
+      TestDatabase__MasterConnectionString: Server=localhost,1433;Database=master;User Id=sa;Password=Wallet_Ci_Passw0rd!;TrustServerCertificate=True;
+      TestDatabase__ConnectionStringTemplate: Server=localhost,1433;Database={0};User Id=sa;Password=Wallet_Ci_Passw0rd!;TrustServerCertificate=True;
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Restore
+        run: dotnet restore
+
+      - name: Build
+        run: dotnet build --no-restore --configuration Release
+
+      - name: Test
+        run: dotnet test --no-build --configuration Release --logger "trx;LogFileName=results.trx"
+
+  frontend:
+    name: Angular tests and build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: client/wallet-ui
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: client/wallet-ui/package-lock.json
+
+      - name: Install
+        run: npm ci
+
+      - name: Test
+        run: npx ng test --watch=false
+
+      - name: Build
+        run: npx ng build

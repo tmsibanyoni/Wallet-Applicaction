@@ -19,12 +19,20 @@ namespace WalletApp.Api.Tests;
 /// </summary>
 public class WalletApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
 {
-    private const string MasterConnectionString = "Server=localhost;Database=master;Trusted_Connection=True;TrustServerCertificate=True;";
+    // Where the test databases live comes from testsettings.json; CI overrides it with
+    // TestDatabase__MasterConnectionString / TestDatabase__ConnectionStringTemplate.
+    private static readonly IConfigurationRoot TestSettings = new ConfigurationBuilder()
+        .SetBasePath(AppContext.BaseDirectory)
+        .AddJsonFile("testsettings.json", optional: false)
+        .AddEnvironmentVariables()
+        .Build();
+
+    private static string MasterConnectionString => TestSettings["TestDatabase:MasterConnectionString"]!;
 
     public string DatabaseName { get; } = $"WalletApp_Test_{Guid.NewGuid():N}";
 
     private string TestConnectionString =>
-        $"Server=localhost;Database={DatabaseName};Trusted_Connection=True;TrustServerCertificate=True;";
+        string.Format(TestSettings["TestDatabase:ConnectionStringTemplate"]!, DatabaseName);
 
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {

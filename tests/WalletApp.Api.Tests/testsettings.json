@@ -1,0 +1,6 @@
+{
+  "TestDatabase": {
+    "MasterConnectionString": "Server=localhost;Database=master;Trusted_Connection=True;TrustServerCertificate=True;",
+    "ConnectionStringTemplate": "Server=localhost;Database={0};Trusted_Connection=True;TrustServerCertificate=True;"
+  }
+}
