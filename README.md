@@ -230,6 +230,3 @@ CRUD.
 Thabang Sibanyoni did the design and made the decisions on this project. Claude (Anthropic's AI
 assistant) helped with the implementation, working from the instructions and commands Thabang
 gave it, and the work was reviewed and run locally before being committed.
-
-The earlier commits carry a `Co-Authored-By: Claude` trailer. Later commits are credited to Thabang
-only, although Claude still helped with the implementation throughout.
