@@ -149,6 +149,39 @@ public class WalletServiceTests
 
     }
 
+    [Fact]
+    public async Task GetWithdrawalsAsync_ReturnsSummariesInRepositoryOrder()
+    {
+        var wallet = NewWallet();
+        var newer = StoredWithdrawal(wallet.Id, 10m, 90m, "a");
+        var older = StoredWithdrawal(wallet.Id, 20m, 100m, "b");
+        _repository.Setup(r => r.GetByIdAsync(wallet.Id, It.IsAny<CancellationToken>())).ReturnsAsync(wallet);
+        _repository.Setup(r => r.GetWithdrawalsAsync(wallet.Id, 20, It.IsAny<CancellationToken>())).ReturnsAsync([newer, older]);
+
+        var history = await _sut.GetWithdrawalsAsync(wallet.Id);
+
+        Assert.Equal([newer.EventId, older.EventId], history.Select(h => h.WithdrawalId));
+        Assert.Equal(10m, history[0].Amount);
+        Assert.Equal(90m, history[0].BalanceAfter);
+    }
+
+    [Fact]
+    public async Task GetWithdrawalsAsync_MissingWallet_Throws()
+    {
+        _repository.Setup(r => r.GetByIdAsync(404, It.IsAny<CancellationToken>())).ReturnsAsync((Wallet?)null);
+
+        await Assert.ThrowsAsync<WalletNotFoundException>(() => _sut.GetWithdrawalsAsync(404));
+    }
+
+    [Theory]
+    [InlineData(0)]
+    [InlineData(-1)]
+    [InlineData(101)]
+    public async Task GetWithdrawalsAsync_LimitOutsideRange_Throws(int limit)
+    {
+        await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => _sut.GetWithdrawalsAsync(1, limit));
+    }
+
     private static WithdrawalCompleted StoredWithdrawal(int walletId, decimal amount, decimal balanceAfter, string key)
         => new(Guid.NewGuid(), walletId, amount, balanceAfter, "USD", DateTimeOffset.UtcNow, key);
 

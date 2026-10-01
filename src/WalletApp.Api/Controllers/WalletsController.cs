@@ -30,6 +30,22 @@ public sealed class WalletsController : ControllerBase
         return Ok(balance);
     }
 
+    /// <summary>Lists a wallet's most recent withdrawals, newest first.</summary>
+    /// <param name="walletId">The wallet's unique id.</param>
+    /// <param name="limit">How many to return. Defaults to the configured page size; capped by configuration.</param>
+    [HttpGet("{walletId:int}/withdrawals")]
+    [ProducesResponseType(typeof(IReadOnlyList<WithdrawalSummary>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(ProblemDetails), StatusCodes.Status404NotFound)]
+    public async Task<ActionResult<IReadOnlyList<WithdrawalSummary>>> GetWithdrawals(
+        int walletId,
+        [FromQuery] int? limit,
+        CancellationToken cancellationToken)
+    {
+        var history = await _walletService.GetWithdrawalsAsync(walletId, limit, cancellationToken);
+        return Ok(history);
+    }
+
     /// <summary>
     /// Withdraws funds from a wallet. Succeeds only when the wallet has sufficient funds; the
     /// balance is updated and a withdrawal event is emitted atomically with the withdrawal.

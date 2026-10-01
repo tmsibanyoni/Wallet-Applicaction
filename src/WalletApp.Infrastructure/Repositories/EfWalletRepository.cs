@@ -33,6 +33,19 @@ public sealed class EfWalletRepository : IWalletRepository
         return record?.ToEvent();
     }
 
+    public async Task<IReadOnlyList<WithdrawalCompleted>> GetWithdrawalsAsync(int walletId, int limit, CancellationToken cancellationToken = default)
+    {
+        var records = await _dbContext.WithdrawalEvents
+            .AsNoTracking()
+            .Where(e => e.WalletId == walletId)
+            .OrderByDescending(e => e.OccurredAtUtc)
+            .ThenByDescending(e => e.Id)
+            .Take(limit)
+            .ToListAsync(cancellationToken);
+
+        return records.Select(r => r.ToEvent()).ToList();
+    }
+
     public async Task SaveWithdrawalAsync(Wallet wallet, WithdrawalCompleted withdrawalEvent, CancellationToken cancellationToken = default)
     {
         // 'wallet' is already tracked by this scoped DbContext (it was loaded via GetByIdAsync),

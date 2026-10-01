@@ -19,6 +19,8 @@ public sealed class WalletService : IWalletService
     private readonly ILogger<WalletService> _logger;
     private readonly int _maxConcurrencyRetries;
     private readonly int _maxIdempotencyKeyLength;
+    private readonly int _historyDefaultPageSize;
+    private readonly int _historyMaxPageSize;
 
     public WalletService(
         IWalletRepository walletRepository,
@@ -29,6 +31,8 @@ public sealed class WalletService : IWalletService
         _logger = logger;
         _maxConcurrencyRetries = options.Value.MaxConcurrencyRetries;
         _maxIdempotencyKeyLength = options.Value.MaxIdempotencyKeyLength;
+        _historyDefaultPageSize = options.Value.HistoryDefaultPageSize;
+        _historyMaxPageSize = options.Value.HistoryMaxPageSize;
     }
 
     public async Task<BalanceResponse> GetBalanceAsync(int walletId, CancellationToken cancellationToken = default)
@@ -37,6 +41,26 @@ public sealed class WalletService : IWalletService
             ?? throw new WalletNotFoundException(walletId);
 
         return new BalanceResponse(wallet.Id, wallet.Balance, wallet.Currency);
+    }
+
+    public async Task<IReadOnlyList<WithdrawalSummary>> GetWithdrawalsAsync(int walletId, int? limit = null, CancellationToken cancellationToken = default)
+    {
+        var pageSize = limit ?? _historyDefaultPageSize;
+
+        if (pageSize < 1 || pageSize > _historyMaxPageSize)
+        {
+            throw new ArgumentOutOfRangeException(
+                nameof(limit), limit, $"The limit must be between 1 and {_historyMaxPageSize}.");
+        }
+
+        _ = await _walletRepository.GetByIdAsync(walletId, cancellationToken)
+            ?? throw new WalletNotFoundException(walletId);
+
+        var events = await _walletRepository.GetWithdrawalsAsync(walletId, pageSize, cancellationToken);
+
+        return events
+            .Select(e => new WithdrawalSummary(e.EventId, e.Amount, e.BalanceAfter, e.Currency, e.OccurredAtUtc))
+            .ToList();
     }
 
     public async Task<WithdrawResult> WithdrawAsync(WithdrawCommand command, CancellationToken cancellationToken = default)

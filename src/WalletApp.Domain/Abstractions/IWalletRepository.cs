@@ -13,6 +13,9 @@ public interface IWalletRepository
     /// <summary>Finds the withdrawal previously completed under <paramref name="idempotencyKey"/> for this wallet, if any.</summary>
     Task<WithdrawalCompleted?> FindWithdrawalByKeyAsync(int walletId, string idempotencyKey, CancellationToken cancellationToken = default);
 
+    /// <summary>Returns the wallet's most recent withdrawals, newest first, up to <paramref name="limit"/>.</summary>
+    Task<IReadOnlyList<WithdrawalCompleted>> GetWithdrawalsAsync(int walletId, int limit, CancellationToken cancellationToken = default);
+
     /// <summary>
     /// Persists a wallet that has just had a withdrawal applied to it, together with the
     /// corresponding event record, as a single atomic unit (see WalletApp.Infrastructure for the

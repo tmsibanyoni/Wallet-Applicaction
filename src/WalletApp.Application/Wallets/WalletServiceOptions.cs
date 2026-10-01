@@ -14,4 +14,10 @@ public sealed class WalletServiceOptions
 
     /// <summary>Longest idempotency key accepted, matching the database column.</summary>
     public int MaxIdempotencyKeyLength { get; set; } = 100;
+
+    /// <summary>How many history rows to return when the caller does not say.</summary>
+    public int HistoryDefaultPageSize { get; set; } = 20;
+
+    /// <summary>The most history rows a caller may ask for in one request.</summary>
+    public int HistoryMaxPageSize { get; set; } = 100;
 }
