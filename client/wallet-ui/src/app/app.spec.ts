@@ -86,4 +86,53 @@ describe('App', () => {
     expect(fixture.componentInstance.balance()).toBe(900);
     expect(fixture.componentInstance.successMessage()).toContain('900');
   });
+
+  it('picks up a balance changed elsewhere when refreshed, without flashing the loading state', () => {
+    const fixture = TestBed.createComponent(App);
+    fixture.detectChanges();
+    httpMock.expectOne(balanceUrl).flush({ walletId: Number(environment.defaultWalletId), balance: 1000, currency: 'ZAR' });
+
+    fixture.componentInstance.refreshBalance();
+    expect(fixture.componentInstance.loadingBalance()).toBe(false);
+    httpMock.expectOne(balanceUrl).flush({ walletId: Number(environment.defaultWalletId), balance: 400, currency: 'ZAR' });
+
+    expect(fixture.componentInstance.balance()).toBe(400);
+  });
+
+  it('keeps the last balance and shows no error when a background refresh fails', () => {
+    const fixture = TestBed.createComponent(App);
+    fixture.detectChanges();
+    httpMock.expectOne(balanceUrl).flush({ walletId: Number(environment.defaultWalletId), balance: 1000, currency: 'ZAR' });
+
+    fixture.componentInstance.refreshBalance();
+    httpMock.expectOne(balanceUrl).flush(null, { status: 500, statusText: 'Server Error' });
+
+    expect(fixture.componentInstance.balance()).toBe(1000);
+    expect(fixture.componentInstance.errorMessage()).toBeNull();
+  });
+
+  it('refreshes when the tab becomes visible again', () => {
+    const fixture = TestBed.createComponent(App);
+    fixture.detectChanges();
+    httpMock.expectOne(balanceUrl).flush({ walletId: Number(environment.defaultWalletId), balance: 1000, currency: 'ZAR' });
+
+    document.dispatchEvent(new Event('visibilitychange'));
+
+    httpMock.expectOne(balanceUrl).flush({ walletId: Number(environment.defaultWalletId), balance: 250, currency: 'ZAR' });
+    expect(fixture.componentInstance.balance()).toBe(250);
+  });
+
+  it('does not refresh over an in-flight withdrawal', () => {
+    const fixture = TestBed.createComponent(App);
+    fixture.detectChanges();
+    httpMock.expectOne(balanceUrl).flush({ walletId: Number(environment.defaultWalletId), balance: 1000, currency: 'ZAR' });
+
+    fixture.componentInstance.withdrawAmount = 100;
+    fixture.componentInstance.withdraw();
+    fixture.componentInstance.refreshBalance();
+
+    httpMock.expectNone(balanceUrl);
+    httpMock.expectOne(`${environment.apiBaseUrl}/wallets/${environment.defaultWalletId}/withdrawals`).flush(
+      { withdrawalId: 'w1', walletId: Number(environment.defaultWalletId), amount: 100, balanceAfter: 900, currency: 'ZAR', occurredAtUtc: new Date().toISOString() });
+  });
 });

@@ -1,7 +1,9 @@
 import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, DestroyRef, HostListener, OnInit, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
+import { interval } from 'rxjs';
 import { environment } from '../environments/environment';
 import { WalletApiService } from './wallet/wallet-api.service';
 import { ProblemDetails } from './wallet/wallet.models';
@@ -14,6 +16,7 @@ import { ProblemDetails } from './wallet/wallet.models';
 })
 export class App implements OnInit {
   private readonly walletApi = inject(WalletApiService);
+  private readonly destroyRef = inject(DestroyRef);
 
   walletId = environment.defaultWalletId;
   balance = signal<number | null>(null);
@@ -31,6 +34,37 @@ export class App implements OnInit {
 
   ngOnInit(): void {
     this.loadBalance();
+
+    interval(environment.balanceRefreshIntervalMs)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => this.refreshBalance());
+  }
+
+  @HostListener('document:visibilitychange')
+  onVisibilityChange(): void {
+    if (document.visibilityState === 'visible') {
+      this.refreshBalance();
+    }
+  }
+
+  /** Quietly re-reads the balance so changes made elsewhere (another tab, another client) show up. */
+  refreshBalance(): void {
+    if (this.loadingBalance() || this.withdrawing()) {
+      return;
+    }
+
+    this.walletApi.getBalance(this.walletId).subscribe({
+      next: (response) => {
+        if (this.withdrawing()) {
+          return;
+        }
+        this.balance.set(response.balance);
+        this.currency.set(response.currency);
+      },
+      error: () => {
+        // Keep showing the last known balance; the next tick will try again.
+      },
+    });
   }
 
   loadBalance(): void {
