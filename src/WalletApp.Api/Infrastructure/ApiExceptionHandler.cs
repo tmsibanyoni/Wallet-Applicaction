@@ -33,19 +33,32 @@ public sealed class ApiExceptionHandler : IExceptionHandler
         {
             _logger.LogError(exception, "Unhandled exception processing {Method} {Path}", httpContext.Request.Method, httpContext.Request.Path);
         }
+        else if (statusCode >= StatusCodes.Status500InternalServerError)
+        {
+            _logger.LogWarning(exception, "Request {Method} {Path} failed with {StatusCode}", httpContext.Request.Method, httpContext.Request.Path, statusCode);
+        }
         else
         {
             _logger.LogInformation(exception, "Request {Method} {Path} failed with {StatusCode}", httpContext.Request.Method, httpContext.Request.Path, statusCode);
         }
 
-        httpContext.Response.StatusCode = statusCode;
-        await httpContext.Response.WriteAsJsonAsync(new ProblemDetails
+        // Server-side failures keep their technical detail in the logs only; the caller gets a
+        // plain message plus a reference id that matches the log entry.
+        var detail = statusCode >= StatusCodes.Status500InternalServerError
+            ? "Something went wrong on our side. Please try again shortly."
+            : exception.Message;
+
+        var problem = new ProblemDetails
         {
             Status = statusCode,
             Title = title,
-            Detail = exception.Message,
+            Detail = detail,
             Instance = httpContext.Request.Path,
-        }, cancellationToken);
+        };
+        problem.Extensions["traceId"] = System.Diagnostics.Activity.Current?.Id ?? httpContext.TraceIdentifier;
+
+        httpContext.Response.StatusCode = statusCode;
+        await httpContext.Response.WriteAsJsonAsync(problem, cancellationToken);
 
         return true;
     }

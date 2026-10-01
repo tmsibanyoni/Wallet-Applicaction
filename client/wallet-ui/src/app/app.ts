@@ -113,6 +113,24 @@ export class App implements OnInit {
   private describeError(err: HttpErrorResponse): string {
     const problem = err.error as ProblemDetails | undefined;
 
+    // Full technical detail goes to the console (and any log shipping on top of it) for developers.
+    console.error('Wallet API request failed', {
+      status: err.status,
+      url: err.url,
+      traceId: problem?.traceId,
+      problem,
+      error: err.message,
+    });
+
+    if (err.status === 0) {
+      return 'We cannot reach the wallet service right now. Please try again in a few minutes.';
+    }
+
+    if (err.status >= 500) {
+      const reference = problem?.traceId ? ` If it keeps happening, quote reference ${problem.traceId}.` : '';
+      return `Something went wrong on our side. Please try again shortly.${reference}`;
+    }
+
     if (problem?.errors) {
       return Object.values(problem.errors).flat().join(' ');
     }
@@ -121,10 +139,6 @@ export class App implements OnInit {
       return problem.detail;
     }
 
-    if (err.status === 0) {
-      return 'Could not reach the Wallet API. Is it running on ' + environment.apiBaseUrl + '?';
-    }
-
-    return `Request failed (${err.status}).`;
+    return 'We could not complete that request. Please check your details and try again.';
   }
 }

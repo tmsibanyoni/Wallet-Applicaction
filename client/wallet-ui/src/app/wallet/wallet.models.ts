@@ -18,4 +18,5 @@ export interface ProblemDetails {
   status?: number;
   detail?: string;
   errors?: Record<string, string[]>;
+  traceId?: string;
 }

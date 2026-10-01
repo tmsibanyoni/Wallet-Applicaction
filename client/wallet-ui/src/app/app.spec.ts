@@ -135,4 +135,36 @@ describe('App', () => {
     httpMock.expectOne(`${environment.apiBaseUrl}/wallets/${environment.defaultWalletId}/withdrawals`).flush(
       { withdrawalId: 'w1', walletId: Number(environment.defaultWalletId), amount: 100, balanceAfter: 900, currency: 'ZAR', occurredAtUtc: new Date().toISOString() });
   });
+
+  it('shows a plain message, not the API address, when the service cannot be reached', () => {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const fixture = TestBed.createComponent(App);
+    fixture.detectChanges();
+
+    httpMock.expectOne(balanceUrl).error(new ProgressEvent('error'));
+
+    const message = fixture.componentInstance.errorMessage() ?? '';
+    expect(message).toContain('cannot reach the wallet service');
+    expect(message).not.toContain('localhost');
+    expect(consoleError).toHaveBeenCalled();
+    consoleError.mockRestore();
+  });
+
+  it('hides server error detail from the user, quotes the reference and logs the detail', () => {
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const fixture = TestBed.createComponent(App);
+    fixture.detectChanges();
+
+    httpMock.expectOne(balanceUrl).flush(
+      { title: 'An unexpected error occurred', status: 500, detail: 'SqlException: login failed', traceId: 'abc-123' },
+      { status: 500, statusText: 'Server Error' },
+    );
+
+    const message = fixture.componentInstance.errorMessage() ?? '';
+    expect(message).toContain('Something went wrong on our side');
+    expect(message).toContain('abc-123');
+    expect(message).not.toContain('SqlException');
+    expect(consoleError).toHaveBeenCalledWith('Wallet API request failed', expect.objectContaining({ status: 500, traceId: 'abc-123' }));
+    consoleError.mockRestore();
+  });
 });
