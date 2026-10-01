@@ -11,6 +11,15 @@ export interface WithdrawResult {
   balanceAfter: number;
   currency: string;
   occurredAtUtc: string;
+  replayed?: boolean;
+}
+
+export interface WithdrawalSummary {
+  withdrawalId: string;
+  amount: number;
+  balanceAfter: number;
+  currency: string;
+  occurredAtUtc: string;
 }
 
 export interface ProblemDetails {

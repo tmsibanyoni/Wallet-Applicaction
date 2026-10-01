@@ -6,12 +6,14 @@ import { FormsModule } from '@angular/forms';
 import { interval } from 'rxjs';
 import { environment } from '../environments/environment';
 import { WalletApiService } from './wallet/wallet-api.service';
-import { ProblemDetails } from './wallet/wallet.models';
+import { ProblemDetails, WithdrawalSummary } from './wallet/wallet.models';
 
 interface PendingWithdrawal {
   walletId: string;
   amount: number;
   currency: string;
+  /** Sent with every attempt for this confirmation, so a retry cannot withdraw twice. */
+  idempotencyKey: string;
 }
 
 @Component({
@@ -32,6 +34,7 @@ export class App implements OnInit {
   loadingBalance = signal(false);
   withdrawing = signal(false);
   pendingWithdrawal = signal<PendingWithdrawal | null>(null);
+  history = signal<WithdrawalSummary[]>([]);
   errorMessage = signal<string | null>(null);
   successMessage = signal<string | null>(null);
 
@@ -82,8 +85,12 @@ export class App implements OnInit {
         if (this.withdrawing()) {
           return;
         }
+        const changed = response.balance !== this.balance();
         this.balance.set(response.balance);
         this.currency.set(response.currency);
+        if (changed) {
+          this.loadHistory();
+        }
       },
       error: () => {
         // Keep showing the last known balance; the next tick will try again.
@@ -101,12 +108,28 @@ export class App implements OnInit {
         this.balance.set(response.balance);
         this.currency.set(response.currency);
         this.loadingBalance.set(false);
+        this.loadHistory();
       },
       error: (err: HttpErrorResponse) => {
         this.balance.set(null);
+        this.history.set([]);
         this.errorMessage.set(this.describeError(err));
         this.loadingBalance.set(false);
       },
+    });
+  }
+
+  /** Reads the recent withdrawals; the list is a convenience, so a failure just leaves the old one showing. */
+  loadHistory(): void {
+    const walletId = this.walletId;
+
+    this.walletApi.getWithdrawals(walletId, environment.historyPageSize).subscribe({
+      next: (items) => {
+        if (walletId === this.walletId) {
+          this.history.set(items);
+        }
+      },
+      error: (err: HttpErrorResponse) => console.error('Could not load withdrawal history', { status: err.status, url: err.url }),
     });
   }
 
@@ -138,7 +161,12 @@ export class App implements OnInit {
     }
 
     this.errorMessage.set(null);
-    this.pendingWithdrawal.set({ walletId: this.walletId, amount, currency: this.currency() });
+    this.pendingWithdrawal.set({
+      walletId: this.walletId,
+      amount,
+      currency: this.currency(),
+      idempotencyKey: crypto.randomUUID(),
+    });
     setTimeout(() => document.getElementById('cancel-withdrawal')?.focus());
   }
 
@@ -160,18 +188,30 @@ export class App implements OnInit {
     this.successMessage.set(null);
     this.withdrawing.set(true);
 
-    this.walletApi.withdraw(pending.walletId, pending.amount).subscribe({
+    this.walletApi.withdraw(pending.walletId, pending.amount, pending.idempotencyKey).subscribe({
       next: (result) => {
         this.balance.set(result.balanceAfter);
         this.currency.set(result.currency);
-        this.successMessage.set(`Withdrew ${this.formatMoney(result.amount, result.currency)}. New balance: ${this.formatMoney(result.balanceAfter, result.currency)}.`);
+        const amount = this.formatMoney(result.amount, result.currency);
+        const balanceAfter = this.formatMoney(result.balanceAfter, result.currency);
+        this.successMessage.set(
+          result.replayed
+            ? `That withdrawal of ${amount} had already gone through, so nothing was taken twice. Balance after it: ${balanceAfter}.`
+            : `Withdrew ${amount}. New balance: ${balanceAfter}.`,
+        );
         this.withdrawAmount = null;
         this.pendingWithdrawal.set(null);
         this.withdrawing.set(false);
+        this.loadHistory();
       },
       error: (err: HttpErrorResponse) => {
         this.errorMessage.set(this.describeError(err));
-        this.pendingWithdrawal.set(null);
+        // After a timeout, a server error or throttling we cannot tell whether the withdrawal happened,
+        // so the confirmation stays open: pressing Confirm again resends the same key and is safe.
+        const outcomeUnknown = err.status === 0 || err.status === 429 || err.status >= 500;
+        if (!outcomeUnknown) {
+          this.pendingWithdrawal.set(null);
+        }
         this.withdrawing.set(false);
       },
     });

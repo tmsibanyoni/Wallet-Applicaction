@@ -4,4 +4,5 @@ export const environment = {
   defaultWalletId: '123',
   locale: 'en-ZA',
   balanceRefreshIntervalMs: 5000,
+  historyPageSize: 10,
 };

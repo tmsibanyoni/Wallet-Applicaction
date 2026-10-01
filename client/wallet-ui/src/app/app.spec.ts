@@ -18,7 +18,13 @@ describe('App', () => {
     httpMock = TestBed.inject(HttpTestingController);
   });
 
-  afterEach(() => httpMock.verify());
+  // Loading the wallet also asks for its recent withdrawals; tests that don't care just let it come back empty.
+  afterEach(() => {
+    httpMock
+      .match((req) => req.method === 'GET' && req.url.endsWith('/withdrawals'))
+      .forEach((req) => req.flush([]));
+    httpMock.verify();
+  });
 
   it('loads the wallet balance on init', () => {
     const fixture = TestBed.createComponent(App);
@@ -170,6 +176,64 @@ describe('App', () => {
     consoleError.mockRestore();
   });
 
+  describe('withdrawal history', () => {
+    const historyUrl = `${environment.apiBaseUrl}/wallets/${environment.defaultWalletId}/withdrawals?limit=${environment.historyPageSize}`;
+    const entry = { withdrawalId: 'w1', amount: 100, balanceAfter: 900, currency: 'ZAR', occurredAtUtc: '2026-10-01T10:00:00Z' };
+
+    function loadedFixture() {
+      const fixture = TestBed.createComponent(App);
+      fixture.detectChanges();
+      httpMock.expectOne(balanceUrl).flush({ walletId: Number(environment.defaultWalletId), balance: 1000, currency: 'ZAR' });
+      return fixture;
+    }
+
+    it('loads the recent withdrawals along with the balance and lists them', () => {
+      const fixture = loadedFixture();
+
+      httpMock.expectOne(historyUrl).flush([entry]);
+      fixture.detectChanges();
+
+      expect(fixture.componentInstance.history()).toEqual([entry]);
+      expect((fixture.nativeElement as HTMLElement).querySelector('.history')?.textContent).toContain('R');
+    });
+
+    it('says there are no withdrawals yet when the list is empty', () => {
+      const fixture = loadedFixture();
+
+      httpMock.expectOne(historyUrl).flush([]);
+      fixture.detectChanges();
+
+      expect((fixture.nativeElement as HTMLElement).querySelector('.history')?.textContent).toContain('No withdrawals yet');
+    });
+
+    it('reloads the list after a withdrawal', () => {
+      const fixture = loadedFixture();
+      httpMock.expectOne(historyUrl).flush([]);
+
+      fixture.componentInstance.withdrawAmount = 100;
+      fixture.componentInstance.requestWithdrawal();
+      fixture.componentInstance.confirmWithdrawal();
+      httpMock.expectOne(`${environment.apiBaseUrl}/wallets/${environment.defaultWalletId}/withdrawals`).flush({
+        withdrawalId: 'w1', walletId: Number(environment.defaultWalletId), amount: 100,
+        balanceAfter: 900, currency: 'ZAR', occurredAtUtc: entry.occurredAtUtc,
+      });
+
+      httpMock.expectOne(historyUrl).flush([entry]);
+      expect(fixture.componentInstance.history()).toEqual([entry]);
+    });
+
+    it('keeps the old list and shows no error when the history request fails', () => {
+      const fixture = loadedFixture();
+      httpMock.expectOne(historyUrl).flush([entry]);
+
+      fixture.componentInstance.loadHistory();
+      httpMock.expectOne(historyUrl).flush({}, { status: 500, statusText: 'Server Error' });
+
+      expect(fixture.componentInstance.history()).toEqual([entry]);
+      expect(fixture.componentInstance.errorMessage()).toBeNull();
+    });
+  });
+
   describe('withdrawal confirmation', () => {
     const withdrawalsUrl = `${environment.apiBaseUrl}/wallets/${environment.defaultWalletId}/withdrawals`;
 
@@ -255,6 +319,62 @@ describe('App', () => {
 
       expect(fixture.componentInstance.pendingWithdrawal()).toBeNull();
       expect(fixture.componentInstance.errorMessage()).toContain('two decimal places');
+    });
+
+    it('sends an Idempotency-Key header with the withdrawal', () => {
+      const fixture = loadedFixture();
+      fixture.componentInstance.withdrawAmount = 100;
+      fixture.componentInstance.requestWithdrawal();
+      fixture.componentInstance.confirmWithdrawal();
+
+      const req = httpMock.expectOne(withdrawalsUrl);
+      expect(req.request.headers.get('Idempotency-Key')).toMatch(/^[0-9a-f-]{36}$/);
+      expect(req.request.body).toEqual({ amount: 100 });
+    });
+
+    it('keeps the confirmation open after a network failure and retries with the same key', () => {
+      const fixture = loadedFixture();
+      fixture.componentInstance.withdrawAmount = 100;
+      fixture.componentInstance.requestWithdrawal();
+      fixture.componentInstance.confirmWithdrawal();
+
+      const first = httpMock.expectOne(withdrawalsUrl);
+      const key = first.request.headers.get('Idempotency-Key');
+      first.error(new ProgressEvent('error'), { status: 0 });
+
+      expect(fixture.componentInstance.pendingWithdrawal()).not.toBeNull();
+
+      fixture.componentInstance.confirmWithdrawal();
+      const second = httpMock.expectOne(withdrawalsUrl);
+      expect(second.request.headers.get('Idempotency-Key')).toBe(key);
+    });
+
+    it('closes the confirmation after a rejected withdrawal so the next attempt gets a new key', () => {
+      const fixture = loadedFixture();
+      fixture.componentInstance.withdrawAmount = 100;
+      fixture.componentInstance.requestWithdrawal();
+      fixture.componentInstance.confirmWithdrawal();
+
+      httpMock.expectOne(withdrawalsUrl).flush(
+        { title: 'Insufficient funds', detail: 'The wallet does not have enough money.' },
+        { status: 422, statusText: 'Unprocessable Entity' },
+      );
+
+      expect(fixture.componentInstance.pendingWithdrawal()).toBeNull();
+    });
+
+    it('says so when the server replays an earlier withdrawal instead of taking the money twice', () => {
+      const fixture = loadedFixture();
+      fixture.componentInstance.withdrawAmount = 100;
+      fixture.componentInstance.requestWithdrawal();
+      fixture.componentInstance.confirmWithdrawal();
+
+      httpMock.expectOne(withdrawalsUrl).flush({
+        withdrawalId: 'w1', walletId: Number(environment.defaultWalletId), amount: 100,
+        balanceAfter: 900, currency: 'ZAR', occurredAtUtc: new Date().toISOString(), replayed: true,
+      });
+
+      expect(fixture.componentInstance.successMessage()).toContain('already gone through');
     });
 
     it('will not confirm if the balance dropped below the amount while the panel was open', () => {
