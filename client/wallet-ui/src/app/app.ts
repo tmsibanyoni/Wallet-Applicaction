@@ -8,6 +8,12 @@ import { environment } from '../environments/environment';
 import { WalletApiService } from './wallet/wallet-api.service';
 import { ProblemDetails } from './wallet/wallet.models';
 
+interface PendingWithdrawal {
+  walletId: string;
+  amount: number;
+  currency: string;
+}
+
 @Component({
   selector: 'app-root',
   imports: [CommonModule, FormsModule],
@@ -25,11 +31,24 @@ export class App implements OnInit {
 
   loadingBalance = signal(false);
   withdrawing = signal(false);
+  pendingWithdrawal = signal<PendingWithdrawal | null>(null);
   errorMessage = signal<string | null>(null);
   successMessage = signal<string | null>(null);
 
   formatMoney(amount: number, currency: string): string {
     return new Intl.NumberFormat(environment.locale, { style: 'currency', currency }).format(amount);
+  }
+
+  /** What the balance will be once the pending withdrawal goes through, based on the latest balance. */
+  balanceAfterPending(): number | null {
+    const pending = this.pendingWithdrawal();
+    const balance = this.balance();
+    return pending && balance !== null ? Math.round((balance - pending.amount) * 100) / 100 : null;
+  }
+
+  canConfirmWithdrawal(): boolean {
+    const after = this.balanceAfterPending();
+    return after !== null && after >= 0 && !this.withdrawing();
   }
 
   ngOnInit(): void {
@@ -45,6 +64,11 @@ export class App implements OnInit {
     if (document.visibilityState === 'visible') {
       this.refreshBalance();
     }
+  }
+
+  @HostListener('document:keydown.escape')
+  onEscape(): void {
+    this.cancelWithdrawal();
   }
 
   /** Quietly re-reads the balance so changes made elsewhere (another tab, another client) show up. */
@@ -69,6 +93,7 @@ export class App implements OnInit {
 
   loadBalance(): void {
     this.errorMessage.set(null);
+    this.pendingWithdrawal.set(null);
     this.loadingBalance.set(true);
 
     this.walletApi.getBalance(this.walletId).subscribe({
@@ -85,9 +110,49 @@ export class App implements OnInit {
     });
   }
 
-  withdraw(): void {
-    if (!this.withdrawAmount || this.withdrawAmount <= 0) {
+  /** Step one: check the entry and ask the user to confirm. Nothing is sent to the API yet. */
+  requestWithdrawal(): void {
+    this.successMessage.set(null);
+
+    const amount = this.withdrawAmount;
+    const balance = this.balance();
+
+    if (!amount || amount <= 0) {
       this.errorMessage.set('Enter an amount greater than zero.');
+      return;
+    }
+
+    if (Math.round(amount * 100) / 100 !== amount) {
+      this.errorMessage.set('Enter an amount with at most two decimal places.');
+      return;
+    }
+
+    if (balance === null) {
+      this.errorMessage.set('Load the wallet before withdrawing.');
+      return;
+    }
+
+    if (amount > balance) {
+      this.errorMessage.set(`You can withdraw up to ${this.formatMoney(balance, this.currency())}.`);
+      return;
+    }
+
+    this.errorMessage.set(null);
+    this.pendingWithdrawal.set({ walletId: this.walletId, amount, currency: this.currency() });
+    setTimeout(() => document.getElementById('cancel-withdrawal')?.focus());
+  }
+
+  cancelWithdrawal(): void {
+    if (this.withdrawing()) {
+      return;
+    }
+    this.pendingWithdrawal.set(null);
+  }
+
+  /** Step two: the user has confirmed, so send the withdrawal. */
+  confirmWithdrawal(): void {
+    const pending = this.pendingWithdrawal();
+    if (!pending || !this.canConfirmWithdrawal()) {
       return;
     }
 
@@ -95,16 +160,18 @@ export class App implements OnInit {
     this.successMessage.set(null);
     this.withdrawing.set(true);
 
-    this.walletApi.withdraw(this.walletId, this.withdrawAmount).subscribe({
+    this.walletApi.withdraw(pending.walletId, pending.amount).subscribe({
       next: (result) => {
         this.balance.set(result.balanceAfter);
         this.currency.set(result.currency);
         this.successMessage.set(`Withdrew ${this.formatMoney(result.amount, result.currency)}. New balance: ${this.formatMoney(result.balanceAfter, result.currency)}.`);
         this.withdrawAmount = null;
+        this.pendingWithdrawal.set(null);
         this.withdrawing.set(false);
       },
       error: (err: HttpErrorResponse) => {
         this.errorMessage.set(this.describeError(err));
+        this.pendingWithdrawal.set(null);
         this.withdrawing.set(false);
       },
     });

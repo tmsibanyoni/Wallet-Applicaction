@@ -69,7 +69,8 @@ describe('App', () => {
     httpMock.expectOne(balanceUrl).flush({ walletId: Number(environment.defaultWalletId), balance: 1000, currency: 'USD' });
 
     fixture.componentInstance.withdrawAmount = 100;
-    fixture.componentInstance.withdraw();
+    fixture.componentInstance.requestWithdrawal();
+    fixture.componentInstance.confirmWithdrawal();
 
     const withdrawReq = httpMock.expectOne(`${environment.apiBaseUrl}/wallets/${environment.defaultWalletId}/withdrawals`);
     expect(withdrawReq.request.body).toEqual({ amount: 100 });
@@ -128,7 +129,8 @@ describe('App', () => {
     httpMock.expectOne(balanceUrl).flush({ walletId: Number(environment.defaultWalletId), balance: 1000, currency: 'ZAR' });
 
     fixture.componentInstance.withdrawAmount = 100;
-    fixture.componentInstance.withdraw();
+    fixture.componentInstance.requestWithdrawal();
+    fixture.componentInstance.confirmWithdrawal();
     fixture.componentInstance.refreshBalance();
 
     httpMock.expectNone(balanceUrl);
@@ -166,5 +168,107 @@ describe('App', () => {
     expect(message).not.toContain('SqlException');
     expect(consoleError).toHaveBeenCalledWith('Wallet API request failed', expect.objectContaining({ status: 500, traceId: 'abc-123' }));
     consoleError.mockRestore();
+  });
+
+  describe('withdrawal confirmation', () => {
+    const withdrawalsUrl = `${environment.apiBaseUrl}/wallets/${environment.defaultWalletId}/withdrawals`;
+
+    function loadedFixture(balance = 1000) {
+      const fixture = TestBed.createComponent(App);
+      fixture.detectChanges();
+      httpMock.expectOne(balanceUrl).flush({ walletId: Number(environment.defaultWalletId), balance, currency: 'ZAR' });
+      fixture.detectChanges();
+      return fixture;
+    }
+
+    it('asks for confirmation and sends nothing until the user confirms', () => {
+      const fixture = loadedFixture();
+
+      fixture.componentInstance.withdrawAmount = 100;
+      fixture.componentInstance.requestWithdrawal();
+      fixture.detectChanges();
+
+      httpMock.expectNone(withdrawalsUrl);
+      const panel = (fixture.nativeElement as HTMLElement).querySelector('.confirm')?.textContent ?? '';
+      expect(panel).toContain('Confirm withdrawal');
+      expect(panel).toContain('100');
+      expect(panel).toContain('900');
+    });
+
+    it('sends the withdrawal only after Confirm is clicked', () => {
+      const fixture = loadedFixture();
+      fixture.componentInstance.withdrawAmount = 100;
+      fixture.componentInstance.requestWithdrawal();
+      fixture.detectChanges();
+
+      (fixture.nativeElement as HTMLElement).querySelector<HTMLButtonElement>('#confirm-withdrawal')!.click();
+
+      httpMock.expectOne(withdrawalsUrl).flush({
+        withdrawalId: 'w1', walletId: Number(environment.defaultWalletId), amount: 100,
+        balanceAfter: 900, currency: 'ZAR', occurredAtUtc: new Date().toISOString(),
+      });
+      expect(fixture.componentInstance.pendingWithdrawal()).toBeNull();
+      expect(fixture.componentInstance.balance()).toBe(900);
+    });
+
+    it('cancels without calling the API', () => {
+      const fixture = loadedFixture();
+      fixture.componentInstance.withdrawAmount = 100;
+      fixture.componentInstance.requestWithdrawal();
+      fixture.detectChanges();
+
+      (fixture.nativeElement as HTMLElement).querySelector<HTMLButtonElement>('#cancel-withdrawal')!.click();
+      fixture.detectChanges();
+
+      httpMock.expectNone(withdrawalsUrl);
+      expect(fixture.componentInstance.pendingWithdrawal()).toBeNull();
+      expect((fixture.nativeElement as HTMLElement).querySelector('.confirm')).toBeNull();
+      expect(fixture.componentInstance.balance()).toBe(1000);
+    });
+
+    it('cancels when Escape is pressed', () => {
+      const fixture = loadedFixture();
+      fixture.componentInstance.withdrawAmount = 100;
+      fixture.componentInstance.requestWithdrawal();
+
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape' }));
+
+      expect(fixture.componentInstance.pendingWithdrawal()).toBeNull();
+    });
+
+    it('refuses an amount above the balance before asking for confirmation', () => {
+      const fixture = loadedFixture(50);
+
+      fixture.componentInstance.withdrawAmount = 75;
+      fixture.componentInstance.requestWithdrawal();
+
+      expect(fixture.componentInstance.pendingWithdrawal()).toBeNull();
+      expect(fixture.componentInstance.errorMessage()).toContain('up to');
+      httpMock.expectNone(withdrawalsUrl);
+    });
+
+    it('refuses an amount with more than two decimal places', () => {
+      const fixture = loadedFixture();
+
+      fixture.componentInstance.withdrawAmount = 10.005;
+      fixture.componentInstance.requestWithdrawal();
+
+      expect(fixture.componentInstance.pendingWithdrawal()).toBeNull();
+      expect(fixture.componentInstance.errorMessage()).toContain('two decimal places');
+    });
+
+    it('will not confirm if the balance dropped below the amount while the panel was open', () => {
+      const fixture = loadedFixture(100);
+      fixture.componentInstance.withdrawAmount = 80;
+      fixture.componentInstance.requestWithdrawal();
+
+      fixture.componentInstance.refreshBalance();
+      httpMock.expectOne(balanceUrl).flush({ walletId: Number(environment.defaultWalletId), balance: 30, currency: 'ZAR' });
+      fixture.detectChanges();
+
+      expect(fixture.componentInstance.canConfirmWithdrawal()).toBe(false);
+      fixture.componentInstance.confirmWithdrawal();
+      httpMock.expectNone(withdrawalsUrl);
+    });
   });
 });

@@ -115,6 +115,47 @@ button:disabled {
   margin-bottom: 0;
 }
 
+.confirm {
+  margin-top: 1rem;
+  padding: 1rem;
+  border: 1px solid var(--accent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--accent) 6%, white);
+  font-size: 0.9rem;
+}
+
+.confirm h2 {
+  margin: 0 0 0.5rem;
+  font-size: 1rem;
+}
+
+.confirm p {
+  margin: 0 0 0.75rem;
+  line-height: 1.4;
+}
+
+.confirm .confirm-warning {
+  color: #a12820;
+}
+
+.confirm .actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+button.secondary {
+  background: white;
+  color: var(--accent);
+  border: 1px solid var(--accent);
+}
+
+button.secondary:disabled {
+  background: white;
+  color: var(--accent-disabled);
+  border-color: var(--accent-disabled);
+}
+
 .message {
   margin-top: 1rem;
   padding: 0.6rem 0.75rem;

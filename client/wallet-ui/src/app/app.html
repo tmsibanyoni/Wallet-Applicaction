@@ -7,8 +7,8 @@
   <label class="field">
     <span>Wallet ID</span>
     <div class="row">
-      <input type="text" [(ngModel)]="walletId" name="walletId" spellcheck="false" />
-      <button type="button" (click)="loadBalance()" [disabled]="loadingBalance()">
+      <input type="text" [(ngModel)]="walletId" name="walletId" spellcheck="false" [disabled]="pendingWithdrawal() !== null" />
+      <button type="button" (click)="loadBalance()" [disabled]="loadingBalance() || pendingWithdrawal() !== null">
         {{ loadingBalance() ? 'Loading…' : 'Load' }}
       </button>
     </div>
@@ -22,7 +22,7 @@
     <ng-template #noBalance><span class="balance-value muted">—</span></ng-template>
   </div>
 
-  <form class="withdraw-form" (ngSubmit)="withdraw()">
+  <form class="withdraw-form" (ngSubmit)="requestWithdrawal()">
     <label class="field">
       <span>Withdraw amount</span>
       <input
@@ -32,12 +32,38 @@
         [(ngModel)]="withdrawAmount"
         name="withdrawAmount"
         placeholder="0.00"
+        [disabled]="pendingWithdrawal() !== null"
       />
     </label>
-    <button type="submit" [disabled]="withdrawing()">
-      {{ withdrawing() ? 'Withdrawing…' : 'Withdraw' }}
-    </button>
+    <button type="submit" [disabled]="withdrawing() || pendingWithdrawal() !== null">Withdraw</button>
   </form>
+
+  <section
+    class="confirm"
+    *ngIf="pendingWithdrawal() as pending"
+    role="alertdialog"
+    aria-labelledby="confirm-title"
+    aria-describedby="confirm-detail"
+  >
+    <h2 id="confirm-title">Confirm withdrawal</h2>
+    <p id="confirm-detail">
+      You are about to withdraw <strong>{{ formatMoney(pending.amount, pending.currency) }}</strong>
+      from wallet {{ pending.walletId }}. Your balance afterwards will be
+      <strong *ngIf="balanceAfterPending() !== null">{{ formatMoney(balanceAfterPending()!, pending.currency) }}</strong>.
+      This cannot be undone.
+    </p>
+    <p class="confirm-warning" *ngIf="balanceAfterPending() !== null && balanceAfterPending()! < 0">
+      The balance has changed and no longer covers this amount.
+    </p>
+    <div class="actions">
+      <button type="button" id="cancel-withdrawal" class="secondary" (click)="cancelWithdrawal()" [disabled]="withdrawing()">
+        Cancel
+      </button>
+      <button type="button" id="confirm-withdrawal" (click)="confirmWithdrawal()" [disabled]="!canConfirmWithdrawal()">
+        {{ withdrawing() ? 'Withdrawing…' : 'Confirm withdrawal' }}
+      </button>
+    </div>
+  </section>
 
   <p class="message error" *ngIf="errorMessage()">{{ errorMessage() }}</p>
   <p class="message success" *ngIf="successMessage()">{{ successMessage() }}</p>
