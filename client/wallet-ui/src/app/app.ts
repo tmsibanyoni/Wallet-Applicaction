@@ -25,6 +25,10 @@ export class App implements OnInit {
   errorMessage = signal<string | null>(null);
   successMessage = signal<string | null>(null);
 
+  formatMoney(amount: number, currency: string): string {
+    return new Intl.NumberFormat(environment.locale, { style: 'currency', currency }).format(amount);
+  }
+
   ngOnInit(): void {
     this.loadBalance();
   }
@@ -61,7 +65,7 @@ export class App implements OnInit {
       next: (result) => {
         this.balance.set(result.balanceAfter);
         this.currency.set(result.currency);
-        this.successMessage.set(`Withdrew ${result.amount} ${result.currency}. New balance: ${result.balanceAfter} ${result.currency}.`);
+        this.successMessage.set(`Withdrew ${this.formatMoney(result.amount, result.currency)}. New balance: ${this.formatMoney(result.balanceAfter, result.currency)}.`);
         this.withdrawAmount = null;
         this.withdrawing.set(false);
       },

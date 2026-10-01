@@ -30,6 +30,18 @@ describe('App', () => {
     expect(fixture.componentInstance.currency()).toBe('USD');
   });
 
+  it('shows rand amounts with the R symbol instead of the ZAR code', () => {
+    const fixture = TestBed.createComponent(App);
+    fixture.detectChanges();
+    httpMock.expectOne(balanceUrl).flush({ walletId: Number(environment.defaultWalletId), balance: 1500, currency: 'ZAR' });
+    fixture.detectChanges();
+
+    const text = (fixture.nativeElement as HTMLElement).querySelector('.balance-value')?.textContent ?? '';
+    expect(text).toContain('R');
+    expect(text).toContain('500');
+    expect(text).not.toContain('ZAR');
+  });
+
   it('renders the wallet heading', () => {
     const fixture = TestBed.createComponent(App);
     fixture.detectChanges();

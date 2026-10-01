@@ -17,7 +17,7 @@
   <div class="balance">
     <span class="balance-label">Current balance</span>
     <span class="balance-value" *ngIf="balance() !== null; else noBalance">
-      {{ balance() }} {{ currency() }}
+      {{ formatMoney(balance()!, currency()) }}
     </span>
     <ng-template #noBalance><span class="balance-value muted">—</span></ng-template>
   </div>
