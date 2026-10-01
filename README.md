@@ -227,16 +227,9 @@ CRUD.
 
 ## AI usage
 
-I used Claude Code (Sonnet 5) as a pairing tool throughout — scaffolding the solution, writing
-the domain/application/infrastructure/API code, generating and iterating the EF Core migration,
-writing the test suite, and building the Angular client. I steered the design decisions (the
-aggregate boundary, the outbox-style event write, the SQL Server switch, the config-over-
-hard-coding requirement) and had it implement and test each piece, including running the full
-suite against a real local SQL Server instance rather than trusting it blind. The stale-read
-concurrency bug described above is a good example of the workflow: the AI wrote the first version
-of the retry logic, a test it also wrote caught the bug when the numbers didn't add up, and the
-fix (reload-on-conflict in the repository) came out of us tracing through *why* rather than just
-retrying until it went green.
+Thabang Sibanyoni did the design and made the decisions on this project. Claude (Anthropic's AI
+assistant) helped with the implementation, working from the instructions and commands Thabang
+gave it, and the work was reviewed and run locally before being committed.
 
-Every commit that includes AI-generated code carries a `Co-Authored-By: Claude Sonnet 5` trailer,
-so the history reflects who wrote what.
+Commits that include Claude's work carry a `Co-Authored-By: Claude` trailer, so the history shows
+where it helped.
