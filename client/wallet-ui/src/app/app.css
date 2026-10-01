@@ -16,9 +16,17 @@
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
 }
 
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 1.25rem;
+}
+
 h1 {
-  margin: 0 0 1.25rem;
+  margin: 0;
   font-size: 1.4rem;
+  color: var(--accent);
 }
 
 .field {
