@@ -18,16 +18,26 @@ public sealed class RabbitMqWithdrawalEventConsumer : BackgroundService
     private static readonly TimeSpan ReconnectDelay = TimeSpan.FromSeconds(5);
 
     private readonly RabbitMqOptions _options;
+    private readonly EventBusOptions _busOptions;
     private readonly ILogger<RabbitMqWithdrawalEventConsumer> _logger;
 
-    public RabbitMqWithdrawalEventConsumer(IOptions<RabbitMqOptions> options, ILogger<RabbitMqWithdrawalEventConsumer> logger)
+    public RabbitMqWithdrawalEventConsumer(
+        IOptions<RabbitMqOptions> options,
+        IOptions<EventBusOptions> busOptions,
+        ILogger<RabbitMqWithdrawalEventConsumer> logger)
     {
         _options = options.Value;
+        _busOptions = busOptions.Value;
         _logger = logger;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        if (!string.Equals(_busOptions.Provider, EventBusOptions.RabbitMqProvider, StringComparison.OrdinalIgnoreCase))
+        {
+            return;
+        }
+
         while (!stoppingToken.IsCancellationRequested)
         {
             try

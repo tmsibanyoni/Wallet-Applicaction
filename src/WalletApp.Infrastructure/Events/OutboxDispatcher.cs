@@ -90,6 +90,10 @@ public sealed class OutboxDispatcher : BackgroundService
 
         foreach (var record in pending)
         {
+            using var activity = WalletTelemetry.Source.StartActivity("outbox.publish");
+            activity?.SetTag("wallet.id", record.WalletId);
+            activity?.SetTag("event.id", record.Id);
+
             try
             {
                 await _eventBus.PublishAsync(record.ToEvent(), cancellationToken);
@@ -97,6 +101,7 @@ public sealed class OutboxDispatcher : BackgroundService
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
                 // Stop here so later events never overtake this one; it is retried next pass.
+                activity?.SetStatus(System.Diagnostics.ActivityStatusCode.Error, ex.Message);
                 _logger.LogWarning(ex, "Could not publish withdrawal event {EventId}; it stays pending.", record.Id);
                 break;
             }

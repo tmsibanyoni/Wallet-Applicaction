@@ -17,7 +17,7 @@ namespace WalletApp.Api.Tests;
 /// transactions and real optimistic-concurrency behaviour instead of a fake provider. The
 /// database is dropped once the test class finishes.
 /// </summary>
-public sealed class WalletApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
+public class WalletApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
 {
     private const string MasterConnectionString = "Server=localhost;Database=master;Trusted_Connection=True;TrustServerCertificate=True;";
 
@@ -30,15 +30,27 @@ public sealed class WalletApiFactory : WebApplicationFactory<Program>, IAsyncLif
     {
         builder.ConfigureAppConfiguration((_, config) =>
         {
-            config.AddInMemoryCollection(new Dictionary<string, string?>
+            var settings = new Dictionary<string, string?>
             {
                 ["ConnectionStrings:WalletDb"] = TestConnectionString,
                 // No broker in the test host; tests drive the outbox dispatcher themselves.
                 ["EventBus:Provider"] = "Log",
                 ["Outbox:Enabled"] = "false",
-            });
+                // The load tests send bursts that a real client limit would (rightly) reject.
+                ["RateLimiting:Enabled"] = "false",
+            };
+
+            foreach (var (key, value) in ExtraSettings)
+            {
+                settings[key] = value;
+            }
+
+            config.AddInMemoryCollection(settings);
         });
     }
+
+    /// <summary>Settings a derived factory adds on top of (or instead of) the defaults above.</summary>
+    protected virtual IReadOnlyDictionary<string, string?> ExtraSettings { get; } = new Dictionary<string, string?>();
 
     /// <summary>The id of the wallet the app seeds on startup, as configured in appsettings.json.</summary>
     public int SeedWalletId => Services.GetRequiredService<IOptions<WalletSeedOptions>>().Value.WalletId;
